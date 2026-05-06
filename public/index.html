@@ -89,6 +89,15 @@
       document.getElementById(id).classList.add('active');
       btn.classList.add('active');
     }
+
+    async function test()
+    {
+      fetch("api/player/player")
+        .then(res => res.text())
+        .then(data => console.log(data));
+    }
+    test();
+
   </script>
 
 </body>
