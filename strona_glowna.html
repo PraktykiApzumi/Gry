@@ -12,7 +12,6 @@
   <div class="orb orb2"></div>
   <div class="orb orb3"></div>
 
-  <!-- Zakładki -->
   <div class="tabs">
     <button class="active" onclick="showView('dodaj', this)">Dodaj rozgrywkę</button>
     <button onclick="showView('statystyki', this)">Statystyki</button>
@@ -23,47 +22,55 @@
     <div class="section">
       <div class="left">
 
-        <div class="game-box">
-          <input type="text" placeholder="Nazwa gry..."/>
-          <input type="text" placeholder="podp1"/>
-          <input type="text" placeholder="podp1"/>
-          <input type="text" placeholder="podp1"/>
-        </div>
+        <!-- FORMULARZ: Gra -->
+        <form action="add.php" method="POST" class="game-box">
+          <input type="text" name="nazwa_gry" placeholder="Nazwa gry..." required/>
+          <input type="text" name="gatunek" placeholder="Gatunek"/>
+          <input type="text" name="platforma" placeholder="Platforma"/>
+          <input type="text" name="rok" placeholder="Rok wydania"/>
+        </form>
 
         <div class="players-row">
-          <div class="player-box">
-            <input type="text" placeholder="Nazwa osoby 1..."/>
-            <input type="text" placeholder="podp1"/>
-            <input type="text" placeholder="podp1"/>
-            <input type="text" placeholder="podp1"/>
-            <input type="text" placeholder="punkty"/>
-          </div>
-          <div class="player-box">
-            <input type="text" placeholder="Nazwa osoby 2..."/>
-            <input type="text" placeholder="podp1"/>
-            <input type="text" placeholder="podp1"/>
-            <input type="text" placeholder="podp1"/>
-            <input type="text" placeholder="punkty"/>
-          </div>
-          <div class="player-box">
-            <input type="text" placeholder="Nazwa osoby n..."/>
-            <input type="text" placeholder="podp1"/>
-            <input type="text" placeholder="podp1"/>
-            <input type="text" placeholder="podp1"/>
-            <input type="text" placeholder="punkty"/>
-          </div>
+
+          <!-- FORMULARZ: Gracz 1 -->
+          <form action="add_gracz.php" method="POST" class="player-box">
+            <input type="text" name="nazwa" placeholder="Nazwa osoby 1..."/>
+            <input type="text" name="druzyna" placeholder="Drużyna"/>
+            <input type="text" name="pozycja" placeholder="Pozycja"/>
+            <input type="text" name="czas" placeholder="Czas gry"/>
+            <input type="number" name="punkty" placeholder="punkty"/>
+          </form>
+
+          <!-- FORMULARZ: Gracz 2 -->
+          <form action="add_gracz.php" method="POST" class="player-box">
+            <input type="text" name="nazwa" placeholder="Nazwa osoby 2..."/>
+            <input type="text" name="druzyna" placeholder="Drużyna"/>
+            <input type="text" name="pozycja" placeholder="Pozycja"/>
+            <input type="text" name="czas" placeholder="Czas gry"/>
+            <input type="number" name="punkty" placeholder="punkty"/>
+          </form>
+
+          <!-- FORMULARZ: Gracz 3 -->
+          <form action="add_gracz.php" method="POST" class="player-box">
+            <input type="text" name="nazwa" placeholder="Nazwa osoby 3..."/>
+            <input type="text" name="druzyna" placeholder="Drużyna"/>
+            <input type="text" name="pozycja" placeholder="Pozycja"/>
+            <input type="text" name="czas" placeholder="Czas gry"/>
+            <input type="number" name="punkty" placeholder="punkty"/>
+          </form>
+
         </div>
 
-        <button class="add">Dodaj</button>
+        <button type="submit" form="formularz-gra" class="add">Dodaj</button>
       </div>
     </div>
   </div>
 
   <!-- WIDOK: Statystyki -->
   <div id="statystyki" class="view">
-    <div class="stats-search">
-      <input type="text" placeholder="Szukaj gry..."/>
-    </div>
+    <form action="statystyki.php" method="GET" class="stats-search">
+      <input type="text" name="szukaj" placeholder="Szukaj gry..."/>
+    </form>
 
     <table>
       <thead>
