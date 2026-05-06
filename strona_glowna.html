@@ -2,20 +2,19 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8"/>
-  <title>Rozgrywka</title>
-  <link rel="stylesheet" href="style.css"/>
+  <title>Gry - System wyników</title>
+  <link rel="stylesheet" href="kolorki.css"/>
 </head>
 <body>
 
-  <!-- Animowane orby w tle -->
-  <div class="orb orb1"></div>
-  <div class="orb orb2"></div>
-  <div class="orb orb3"></div>
+  <h1>System wyników</h1>
 
   <div class="tabs">
-    <button class="active" onclick="showView('dodaj', this)">Dodaj rozgrywkę</button>
+    <button onclick="showView('dodaj', this)" class="active">Dodaj rozgrywkę</button>
     <button onclick="showView('statystyki', this)">Statystyki</button>
   </div>
+
+  <hr>
 
   <!-- WIDOK: Dodaj rozgrywkę -->
   <div id="dodaj" class="view active">
@@ -64,6 +63,10 @@
         <button type="submit" form="formularz-gra" class="add">Dodaj</button>
       </div>
     </div>
+
+    <br>
+    <button class="btn-dodaj">Dodaj</button>
+
   </div>
 
   <!-- WIDOK: Statystyki -->
@@ -73,20 +76,17 @@
     </form>
 
     <table>
-      <thead>
-        <tr>
-          <th>Gracz</th>
-          <th>Gra</th>
-          <th>Punkty</th>
-          <th>Data</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td colspan="4" style="text-align:center; padding: 24px;">Brak danych</td>
-        </tr>
-      </tbody>
+      <tr>
+        <th>Gracz</th>
+        <th>Gra</th>
+        <th>Punkty</th>
+        <th>Data</th>
+      </tr>
+      <tr>
+        <td colspan="4" style="text-align:center; color:#999;">Brak danych</td>
+      </tr>
     </table>
+
   </div>
 
   <script>
