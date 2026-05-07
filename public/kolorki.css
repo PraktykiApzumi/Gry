@@ -41,7 +41,8 @@ nav a:hover {
   margin: 16px 0 0 0;
 }
 
-.tabs button {
+.tabs button,
+.tab-btn {
   padding: 9px 22px;
   margin-right: 8px;
   border: 1px solid #ccc;
@@ -51,11 +52,13 @@ nav a:hover {
   cursor: pointer;
 }
 
-.tabs button:hover {
+.tabs button:hover,
+.tab-btn:hover {
   background: #eaf4fb;
 }
 
-.tabs button.active {
+.tabs button.active,
+.tab-btn.active {
   background: #3498db;
   color: #fff;
   border-color: #3498db;
@@ -76,10 +79,12 @@ hr {
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
+  margin: 16px 0;
 }
 
 .game-box,
-.player-box {
+.player-box,
+.player-card {
   background: #fff;
   padding: 16px;
   border-radius: 6px;
@@ -87,8 +92,14 @@ hr {
   width: 200px;
 }
 
+.game-box {
+  width: 100%;
+  max-width: 100%;
+}
+
 .game-box p,
-.player-box p {
+.player-box p,
+.field-label {
   font-weight: bold;
   margin-bottom: 8px;
   color: #2c3e50;
@@ -150,7 +161,8 @@ td {
 tr:hover td {
   background: #f0f7ff;
 }
-.filtr-btn {
+.filtr-btn,
+.filter-btn {
   padding: 7px 16px;
   margin-right: 8px;
   border: 1px solid #ccc;
@@ -160,5 +172,8 @@ tr:hover td {
   cursor: pointer;
 }
 
-.filtr-btn:hover { background: #eaf4fb; }
-.filtr-btn.active { background: #3498db; color: #fff; border-color: #3498db; }
+.filtr-btn:hover,
+.filter-btn:hover { background: #eaf4fb; }
+
+.filtr-btn.active,
+.filter-btn.active { background: #3498db; color: #fff; border-color: #3498db; }
