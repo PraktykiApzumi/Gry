@@ -150,3 +150,15 @@ td {
 tr:hover td {
   background: #f0f7ff;
 }
+.filtr-btn {
+  padding: 7px 16px;
+  margin-right: 8px;
+  border: 1px solid #ccc;
+  background: #fff;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.filtr-btn:hover { background: #eaf4fb; }
+.filtr-btn.active { background: #3498db; color: #fff; border-color: #3498db; }
