@@ -2,66 +2,55 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Gry - System wyników</title>
   <link rel="stylesheet" href="kolorki.css"/>
 </head>
 <body>
-
   <h1>System wyników</h1>
-
   <div class="tabs">
     <button type="button" class="tab-btn active" data-view="addView">Dodaj rozgrywkę</button>
     <button type="button" class="tab-btn" data-view="statsView">Statystyki</button>
   </div>
-
   <hr>
-
   <div id="addView" class="view active">
-
     <h2>Dodaj rozgrywkę</h2>
-
     <form id="matchForm" class="game-box">
       <p>Gra:</p>
       <input id="gameName" type="text" name="game_name" placeholder="Nazwa gry..." required/>
       <input id="maxPlayers" type="number" name="max_players" placeholder="Maksymalna liczba graczy" min="1" max="10" value="3"/>
-
       <div class="players-row" id="playersRow"></div>
-
       <button type="submit" class="btn-dodaj">Dodaj</button>
     </form>
-
   </div>
-
   <div id="statsView" class="view">
-
     <h2>Statystyki</h2>
-    <div style="margin-bottom: 12px;">
+    <div class="filtry">
       <button type="button" class="filter-btn active" data-filter="points">Najwięcej punktów</button>
       <button type="button" class="filter-btn" data-filter="wins">Najwięcej zwycięstw</button>
       <button type="button" class="filter-btn" data-filter="played">Najwięcej gier</button>
     </div>
-    <form id="statsForm">
+    <form id="statsForm" class="szukaj-form">
       <input id="statsName" type="text" name="search" placeholder="Szukaj gry..." required/>
       <button type="submit" class="btn-dodaj">Szukaj</button>
     </form>
-    <table>
-      <tr>
-        <th>Gracz</th>
-        <th>Gra</th>
-        <th>Punkty</th>
-        <th>Zwycięstwa</th>
-        <th>Ilość gier</th>
-      </tr>
-      <tbody id="tableBody">
+    <div class="table-wrapper">
+      <table>
         <tr>
-          <td colspan="5" style="text-align:center; color:#999;">Brak danych</td>
+          <th>Gracz</th>
+          <th>Gra</th>
+          <th>Punkty</th>
+          <th>Zwycięstwa</th>
+          <th>Ilość gier</th>
         </tr>
-      </tbody>
-    </table>
-
+        <tbody id="tableBody">
+          <tr>
+            <td colspan="5" style="text-align:center; color:#999;">Brak danych</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
-
   <script src="app.js"></script>
-
 </body>
 </html>
