@@ -3,9 +3,21 @@ function run(){
   const querySelectorAll = (sel) => Array.from(document.querySelectorAll(sel));
 
   function toInt(value) {
+    if (typeof value === "string" && value.trim() === "") return null;
     const n = Number(value);
     if (!Number.isFinite(n)) return null;
     return Math.trunc(n);
+  }
+
+  function buildApiErrorMessage(body, fallbackMessage) {
+    if (!body) return fallbackMessage;
+
+    const baseMessage = body.error || fallbackMessage;
+    const detailLines = Object.entries(body.details || {})
+      .map(([field, message]) => `${field}: ${message}`);
+
+    if (!detailLines.length) return baseMessage;
+    return `${baseMessage}\n${detailLines.join("\n")}`;
   }
 
   async function getRequest(url) {
@@ -16,9 +28,13 @@ function run(){
       ok: response.ok,
       status: response.status
     });
+    const data = await response.json().catch(() => null);
     if (!response.ok) {
-      throw new Error(`Request failed: ${url}`);
+      const message = buildApiErrorMessage(data, `Request failed: ${url}`);
+      throw new Error(message);
     }
+
+    return data;
   }
 
   async function postJson(url, payload) {
@@ -34,10 +50,41 @@ function run(){
       status: response.status
     });
 
+    const data = await response.json().catch(() => null);
+
     if (!response.ok) {
-      throw new Error(`Request failed: ${url}`);
+      const message = buildApiErrorMessage(data, `Request failed: ${url}`);
+      throw new Error(message);
     }
 
+    return data;
+  }
+
+  function validateMatchPayload(payload) {
+    const errors = [];
+    const containsLetter = (value) => /[a-zA-Z]/.test(value);
+
+    if (payload.gameName.length < 2 || payload.gameName.length > 100) {
+      errors.push("Nazwa gry musi miec od 2 do 100 znakow.");
+    }
+
+    if (!Array.isArray(payload.players) || payload.players.length === 0) {
+      errors.push("Lista graczy nie moze byc pusta.");
+      return errors;
+    }
+
+    payload.players.forEach((player, index) => {
+      if (player.name.length < 2 || player.name.length > 100) {
+        errors.push(`Gracz ${index + 1}: nazwa musi miec od 2 do 100 znakow.`);
+      } else if (!containsLetter(player.name)) {
+        errors.push(`Gracz ${index + 1}: nazwa musi zawierac litery, nie same cyfry.`);
+      }
+      if (!Number.isInteger(player.points) || player.points < 0) {
+        errors.push(`Gracz ${index + 1}: punkty musza byc liczba calkowita >= 0.`);
+      }
+    });
+
+    return errors;
   }
 
   document.addEventListener("DOMContentLoaded", () => {
@@ -86,6 +133,10 @@ function run(){
 
     async function loadStats() {
       const gameName = statsNameInput.value.trim();
+      if (gameName.length < 2 || gameName.length > 100) {
+        alert("Nazwa gry musi miec od 2 do 100 znakow.");
+        return;
+      }
 
       const endpointType = statsEndpointByFilter[currentFilter];
       const encodedName = encodeURIComponent(gameName);
@@ -93,7 +144,11 @@ function run(){
 
       try {
         await getRequest(endpoint);
-      } catch (_err) {
+      } catch (err) {
+        if (err instanceof Error && err.message) {
+          alert(err.message);
+          return;
+        }
         alert("Nie mozna teraz pobrac statystyk.");
       }
     }
@@ -128,9 +183,19 @@ function run(){
         players
       };
 
+      const validationErrors = validateMatchPayload(matchPayload);
+      if (validationErrors.length > 0) {
+        alert(validationErrors.join("\n"));
+        return;
+      }
+
       try {
         await postJson("api/match", matchPayload);
-      } catch (_err) {
+      } catch (err) {
+        if (err instanceof Error && err.message) {
+          alert(err.message);
+          return;
+        }
         alert("Nie mozna teraz wyslac danych.");
       }
     });
