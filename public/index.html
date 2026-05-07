@@ -24,12 +24,12 @@
     <form action="add.php" method="POST" class="game-box">
       <p>Gra:</p>
       <input type="text" name="nazwa_gry" placeholder="Nazwa gry..." required/>
-      <input type="number" name="max_graczy" placeholder="Maksymalna ilość graczy"/>
+      <input type="number" name="max_graczy" placeholder="Maksymalna ilość graczy" min="1" max="10" oninput="generujGraczy(this.value)"/>
     </form>
 
     <br>
 
-    <div class="players-row">
+    <div class="players-row" id="players-row">
 
       <form action="add_gracz.php" method="POST" class="player-box">
         <p>Gracz 1:</p>
@@ -60,44 +60,78 @@
   <div id="statystyki" class="view">
 
     <h2>Statystyki</h2>
-
-    <form action="statystyki.php" method="GET">
+    <div style="margin-bottom: 12px;">
+  <button class="filtr-btn active" data-filtr="punkty" onclick="filtruj('punkty')">Najwięcej punktów</button>
+  <button class="filtr-btn" data-filtr="zwyciestwa" onclick="filtruj('zwyciestwa')">Najwięcej zwycięstw</button>
+  <button class="filtr-btn" data-filtr="gry" onclick="filtruj('gry')">Najwięcej gier</button>
+</div>
+<form action="statystyki.php" method="GET">
       <input type="text" name="szukaj" placeholder="Szukaj gry..."/>
       <button type="submit" class="btn-dodaj">Szukaj</button>
     </form>
+<table>
+  <tr>
+    <th>Gracz</th>
+    <th>Gra</th>
+    <th>Punkty</th>
+    <th>Zwycięstwa</th>
+    <th>Ilość gier</th>
+  </tr>
+  <tbody id="tabela-body">
+    <tr>
+      <td colspan="5" style="text-align:center; color:#999;">Brak danych</td>
+    </tr>
+  </tbody>
+</table>
+    
 
     <br>
-
-    <table>
-      <tr>
-        <th>Gracz</th>
-        <th>Gra</th>
-        <th>Punkty</th>
-        <th>Data</th>
-      </tr>
-      <tr>
-        <td colspan="4" style="text-align:center; color:#999;">Brak danych</td>
-      </tr>
-    </table>
 
   </div>
 
   <script>
-    function showView(id, btn) {
-      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-      document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
-      btn.classList.add('active');
-    }
+  
+  function showView(id, btn) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
 
-    async function test()
-    {
-      fetch("api/player/player")
-        .then(res => res.text())
-        .then(data => console.log(data));
-    }
-    test();
+function generujGraczy(ilosc) {
+  const row = document.getElementById('players-row');
+  row.innerHTML = '';
 
+  for (let i = 1; i <= ilosc; i++) {
+    row.innerHTML += `
+      <form action="add_gracz.php" method="POST" class="player-box">
+        <p>Gracz ${i}:</p>
+        <input type="text" name="nazwa" placeholder="Nazwa gracza"/>
+        <input type="number" name="punkty" placeholder="Punkty"/>
+      </form>
+    `;
+  }
+}
+function filtruj(typ) {
+  document.querySelectorAll('.filtr-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-filtr="${typ}"]`).classList.add('active');
+
+  const wiersze = document.querySelectorAll('#tabela-body tr');
+
+  let posortowane = Array.from(wiersze).sort((a, b) => {
+    if (typ === 'punkty') {
+      return parseInt(b.cells[2].innerText) - parseInt(a.cells[2].innerText);
+    } else if (typ === 'zwyciestwa') {
+      return parseInt(b.cells[3].innerText) - parseInt(a.cells[3].innerText);
+    } else if (typ === 'gry') {
+      return parseInt(b.cells[4].innerText) - parseInt(a.cells[4].innerText);
+    }
+  });
+
+  const tbody = document.getElementById('tabela-body');
+  tbody.innerHTML = '';
+  posortowane.forEach(w => tbody.appendChild(w));
+}
   </script>
 
 </body>
