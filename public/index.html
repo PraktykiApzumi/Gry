@@ -16,11 +16,15 @@
   <div id="addView" class="view active">
     <h2>Dodaj rozgrywkę</h2>
     <form id="matchForm" class="game-box">
-      <p>Gra:</p>
+      <div class="label-row">
+        <p>Gra:</p>
+        <button type="button" class="btn-plus" id="openGameModal" title="Dodaj nową grę">+</button>
+      </div>
       <input id="gameName" type="text" name="game_name" placeholder="Nazwa gry..." required/>
       <input id="maxPlayers" type="number" name="max_players" placeholder="Maksymalna liczba graczy" min="1" max="10" value="3"/>
+      <p>Gracze:</p>
       <div class="players-row" id="playersRow"></div>
-      <button type="submit" class="btn-dodaj">Dodaj</button>
+      <button type="submit" class="btn-dodaj">Dodaj rozgrywkę</button>
     </form>
   </div>
   <div id="statsView" class="view">
@@ -51,6 +55,28 @@
       </table>
     </div>
   </div>
+  <!-- MODAL: Dodaj grę -->
+  <div id="gameModal" class="modal-overlay" style="display:none;">
+    <div class="modal">
+      <h3>Dodaj nową grę</h3>
+      <input type="text" id="modalGameName" placeholder="Nazwa gry..." />
+      <input type="text" id="modalGameRodzaj" placeholder="Rodzaj (np. karciana, strategiczna...)" />
+      <input type="number" id="modalGameMax" placeholder="Maks. graczy" min="1" max="20" />
+      <input type="number" id="modalGameMin" placeholder="Min. graczy" min="1" max="20" />
+      <select id="modalGameWygrana">
+        <option value="">Rodzaj wygranej...</option>
+        <option value="punktowa">Punktowa</option>
+        <option value="punktowa-malejaca">Punktowa malejąca</option>
+        <option value="inna">Inna</option>
+      </select>
+      <div class="modal-buttons">
+        <button type="button" class="btn-dodaj" id="saveGameBtn">Zapisz</button>
+        <button type="button" class="btn-anuluj" id="closeGameModal">Anuluj</button>
+      </div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
+  <script src="modals.js"></script>
 </body>
 </html>

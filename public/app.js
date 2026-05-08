@@ -111,13 +111,23 @@ function run(){
       const safeCount = Math.max(1, Math.min(10, count));
       playersContainer.innerHTML = "";
       for (let i = 0; i < safeCount; i++) {
-        playersContainer.innerHTML += `
-          <div class="player-card">
-            <div class="field-label">Gracz ${i + 1}</div>
-            <input type="text" class="player-name" placeholder="Nazwa gracza" required>
-            <input type="number" class="player-points" placeholder="Punkty" min="0" required>
+        const card = document.createElement("div");
+        card.className = "player-card";
+        card.innerHTML = `
+          <div class="field-label">Gracz ${i + 1}
+            <button type="button" class="btn-plus" title="Dodaj gracza do bazy">+</button>
           </div>
+          <input type="text" class="player-name" placeholder="Nazwa gracza" required>
+          <input type="number" class="player-points" placeholder="Punkty" min="0" required>
         `;
+        card.querySelector(".btn-plus").addEventListener("click", () => {
+          const nameInput = card.querySelector(".player-name");
+          const imie = nameInput.value.trim();
+          if (!imie) { nameInput.style.borderColor = "red"; return; }
+          nameInput.style.borderColor = "";
+          // TODO: fetch("api/player") jak backend gotowy
+        });
+        playersContainer.appendChild(card);
       }
     }
 
