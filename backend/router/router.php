@@ -1,6 +1,6 @@
 <?php
-
-require_once __DIR__ . '/handlers.php';
+require_once __DIR__ . '/../requestHandlers/get.php';
+require_once __DIR__ . '/../requestHandlers/post.php';
 
 $routes = require __DIR__ . '/routes.php';
 
@@ -9,10 +9,6 @@ $uri = $_SERVER['REQUEST_URI'];
 
 $path = parse_url($uri, PHP_URL_PATH);
 $path = str_replace('/gry/public', '', $path);
-
-if ($path === '') {
-    $path = '/';
-}
 
 function matchRoute($routes, $method, $path)
 {
