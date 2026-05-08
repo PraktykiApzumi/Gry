@@ -16,10 +16,10 @@ class DatabaseHandle {
     }
 
     public static function getInstance(): DatabaseHandle {
-        $host = 'localhost';
-        $dbname = 'planszowki';
-        $username = 'root';
-        $password = '';
+        $host = $_ENV['DB_HOST'];
+        $dbname = $_ENV['DB_NAME'];
+        $username = $_ENV['DB_USER'];
+        $password = $_ENV['DB_PASSWORD'];
 
         if (self::$instance === null) {
             self::$instance = new DatabaseHandle($host, $dbname, $username, $password);
