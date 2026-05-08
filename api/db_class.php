@@ -27,16 +27,31 @@ class DatabaseHandle {
         return self::$instance;
     }
 
-    public function addPlayer($nickname) {
+    public function addPlayer($nickname): bool {
+        $sql = "SELECT * from `gracze` where `gracze`.`nick` = :nick";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute([
+            "nick"=> $nickname
+        ]);
+        if( $stmt->rowCount() > 0) return false;
+
         $sql = "INSERT INTO gracze (nick) VALUES (:nickname)";
 
         $stmt = $this->connection->prepare($sql);
         $stmt->execute([
             'nickname' => $nickname,
         ]);
+        return true;
     }
 
-    public function addGame($name, $type, $minPlayers, $maxPlayers, $winType) {
+    public function addGame($name, $type, $minPlayers, $maxPlayers, $winType): bool {
+        $sql = "SELECT * from `gry` where `gry`.`nazwa` = :nazwa"; 
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute([
+            "nazwa"=> $name
+        ]);
+        if( $stmt->rowCount() > 0) return false;
+
         $sql = "INSERT INTO gry (nazwa, rodzaj, min_graczy, max_graczy, rodzaj_wygranej)
                 VALUES (:name, :type, :min_players, :max_players, :win_type)";
 
@@ -48,10 +63,11 @@ class DatabaseHandle {
             'max_players' => $maxPlayers,
             'win_type' => $winType
         ]);
+        return true;
     }
 
-    public function addMatch($winnerId, $gameId, $matchDate, $result) {
-        $sql = "INSERT INTO rozgrywki (id_zwyciezcy, id_gry, data_rozgrywki, wynik)
+    public function addMatch($winnerId, $gameId, $matchDate, $playerCount) {
+        $sql = "INSERT INTO rozgrywki (id_zwyciezcy, id_gry, data, ilosc_graczy)
                 VALUES (:winner_id, :game_id, :match_date, :result)";
 
         $stmt = $this->connection->prepare($sql);
@@ -59,12 +75,12 @@ class DatabaseHandle {
             'winner_id' => $winnerId,
             'game_id' => $gameId,
             'match_date' => $matchDate,
-            'result' => $result
+            'result' => $playerCount
         ]);
     }
 
     public function addScore($matchId, $playerId, $points) {
-        $sql = "INSERT INTO wyniki (id_rozgrywki, id_gracza, punkty)
+        $sql = "INSERT INTO wyniki (id_rozgrywki, id_gracza, liczba_punktow)
                 VALUES (:match_id, :player_id, :points)";
 
         $stmt = $this->connection->prepare($sql);
@@ -80,17 +96,19 @@ class DatabaseHandle {
         $sql = "
         SELECT 
             g.id,
-            g.nazwa,
+            g.nick,
             COUNT(w.id_rozgrywki) AS played_games,
-            COUNT(r.id_wygranego) AS wins,
-            SUM(w.punkty) AS total_points
-        FROM gracze g
+            COUNT(r.id_zwyciezcy) AS wins,
+            SUM(w.liczba_punktow) AS total_points
+        FROM gracze g        
+        JOIN wyniki w 
+            ON g.id = w.id_gracza
         JOIN rozgrywki r 
-            ON g.id = r.id_wygranego
+            ON g.id = r.id_zwyciezcy
         JOIN gry gr 
             ON r.id_gry = gr.id
         WHERE gr.nazwa = :game_name
-        GROUP BY g.id, g.nazwa
+        GROUP BY g.id, g.nick
         ORDER BY wins DESC
     ";
 
@@ -107,10 +125,10 @@ class DatabaseHandle {
         $sql = "
         SELECT 
             g.id,
-            g.nazwa,
+            g.nick,
             COUNT(w.id_rozgrywki) AS played_games,
-            COUNT(r.id_wygranego) AS wins,
-            SUM(w.punkty) AS total_points
+            COUNT(r.id_zwyciezcy) AS wins,
+            SUM(w.liczba_punktow) AS total_points
         FROM gracze g
         JOIN wyniki w 
             ON g.id = w.id_gracza
@@ -119,7 +137,7 @@ class DatabaseHandle {
         JOIN gry gr 
             ON r.id_gry = gr.id
         WHERE gr.nazwa = :game_name
-        GROUP BY g.id, g.nazwa
+        GROUP BY g.id, g.nick
         ORDER BY played_games DESC
     ";
 
@@ -136,10 +154,10 @@ class DatabaseHandle {
         $sql = "
         SELECT 
             g.id,
-            g.nazwa,
+            g.nick,
             COUNT(w.id_rozgrywki) AS played_games,
-            COUNT(r.id_wygranego) AS wins,
-            SUM(w.punkty) AS total_points
+            COUNT(r.id_zwyciezcy) AS wins,
+            SUM(w.liczba_punktow) AS total_points
         FROM gracze g
         JOIN wyniki w 
             ON g.id = w.id_gracza
@@ -148,7 +166,7 @@ class DatabaseHandle {
         JOIN gry gr 
             ON r.id_gry = gr.id
         WHERE gr.nazwa = :game_name
-        GROUP BY g.id, g.nazwa
+        GROUP BY g.id, g.nick
         ORDER BY total_points DESC
     ";
 
