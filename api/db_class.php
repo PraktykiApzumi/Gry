@@ -15,7 +15,12 @@ class DatabaseHandle {
         }
     }
 
-    public static function getInstance($host, $dbname, $username, $password): DatabaseHandle {
+    public static function getInstance(): DatabaseHandle {
+        $host = 'localhost';
+        $dbname = 'planszowki';
+        $username = 'root';
+        $password = '';
+
         if (self::$instance === null) {
             self::$instance = new DatabaseHandle($host, $dbname, $username, $password);
         }
@@ -68,5 +73,90 @@ class DatabaseHandle {
             'player_id' => $playerId,
             'points' => $points
         ]);
+    }
+
+    public function getWinSortedLeaderboard($gameName)
+    {
+        $sql = "
+        SELECT 
+            g.id,
+            g.nazwa,
+            COUNT(w.id_rozgrywki) AS played_games,
+            COUNT(r.id_wygranego) AS wins,
+            SUM(w.punkty) AS total_points
+        FROM gracze g
+        JOIN rozgrywki r 
+            ON g.id = r.id_wygranego
+        JOIN gry gr 
+            ON r.id_gry = gr.id
+        WHERE gr.nazwa = :game_name
+        GROUP BY g.id, g.nazwa
+        ORDER BY wins DESC
+    ";
+
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute([
+            'game_name' => $gameName
+        ]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getPlayedSortedLeaderboard($gameName)
+    {
+        $sql = "
+        SELECT 
+            g.id,
+            g.nazwa,
+            COUNT(w.id_rozgrywki) AS played_games,
+            COUNT(r.id_wygranego) AS wins,
+            SUM(w.punkty) AS total_points
+        FROM gracze g
+        JOIN wyniki w 
+            ON g.id = w.id_gracza
+        JOIN rozgrywki r 
+            ON w.id_rozgrywki = r.id
+        JOIN gry gr 
+            ON r.id_gry = gr.id
+        WHERE gr.nazwa = :game_name
+        GROUP BY g.id, g.nazwa
+        ORDER BY played_games DESC
+    ";
+
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute([
+            'game_name' => $gameName
+        ]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getPointsSortedLeaderboard($gameName)
+    {
+        $sql = "
+        SELECT 
+            g.id,
+            g.nazwa,
+            COUNT(w.id_rozgrywki) AS played_games,
+            COUNT(r.id_wygranego) AS wins,
+            SUM(w.punkty) AS total_points
+        FROM gracze g
+        JOIN wyniki w 
+            ON g.id = w.id_gracza
+        JOIN rozgrywki r 
+            ON w.id_rozgrywki = r.id
+        JOIN gry gr 
+            ON r.id_gry = gr.id
+        WHERE gr.nazwa = :game_name
+        GROUP BY g.id, g.nazwa
+        ORDER BY total_points DESC
+    ";
+
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute([
+            'game_name' => $gameName
+        ]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
