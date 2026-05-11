@@ -91,4 +91,36 @@ function getGameSuggestions($params)
     ]);
 }
 
+function getGameHistory($params)
+{
+    $gameName = validateRouteNameParam($params);
+    $history = dbHandle()->getMatchHistoryByGame($gameName);
+
+    jsonResponse([
+        'ok' => true,
+        'gameName' => $gameName,
+        'history' => $history,
+    ]);
+}
+
+function getPlayerHistory($params)
+{
+    $playerName = validateRouteNameParam($params);
+    $history = dbHandle()->getMatchHistoryByPlayer($playerName);
+
+    jsonResponse([
+        'ok' => true,
+        'playerName' => $playerName,
+        'history' => $history,
+    ]);
+}
+
+function getRecentGames($params = [])
+{
+    jsonResponse([
+        'ok' => true,
+        'history' => dbHandle()->getRecentMatches(20),
+    ]);
+}
+
 ?>

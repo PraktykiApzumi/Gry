@@ -10,9 +10,15 @@ return [
         'api/stats/wins/{name}' => 'getStatsWins',
         'api/stats/points/{name}' => 'getStatsPoints',
         'api/stats/played/{name}' => 'getStatsPlayed',
+
         'api/player/{name}' => 'getPlayerByName',
         'api/game/{name}' => 'getGameByName',
+
         'api/suggest/player/{name}' => 'getPlayerSuggestions',
         'api/suggest/game/{name}' => 'getGameSuggestions',
+
+        'api/history/game/{name}' => 'getGameHistory',        
+        'api/history/player/{name}' => 'getPlayerHistory',        
+        'api/history/recent' => 'getRecentGames',
     ],
 ];
