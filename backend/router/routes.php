@@ -12,5 +12,7 @@ return [
         'api/stats/played/{name}' => 'getStatsPlayed',
         'api/player/{name}' => 'getPlayerByName',
         'api/game/{name}' => 'getGameByName',
+        'api/suggest/player/{name}' => 'getPlayerSuggestions',
+        'api/suggest/game/{name}' => 'getGameSuggestions',
     ],
 ];

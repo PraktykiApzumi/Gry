@@ -96,6 +96,22 @@ class DatabaseHandle {
         return $row === false ? null : $row;
     }
 
+    public function getPlayerSuggestionsByPrefix(string $prefix, int $limit = 3): array {
+        $safeLimit = max(1, min(10, $limit));
+        $sql = "SELECT nick FROM gracze WHERE nick LIKE :prefix ORDER BY nick ASC LIMIT {$safeLimit}";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute(['prefix' => $prefix . '%']);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    public function getGameSuggestionsByPrefix(string $prefix, int $limit = 3): array {
+        $safeLimit = max(1, min(10, $limit));
+        $sql = "SELECT nazwa FROM gry WHERE nazwa LIKE :prefix ORDER BY nazwa ASC LIMIT {$safeLimit}";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute(['prefix' => $prefix . '%']);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
     public function addScore($matchId, $playerId, $points) {
         $sql = "INSERT INTO wyniki (id_rozgrywki, id_gracza, liczba_punktow)
                 VALUES (:match_id, :player_id, :points)";
