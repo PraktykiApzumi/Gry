@@ -151,10 +151,27 @@ function run(){
 
       const encodedName = encodeURIComponent(gameName);
       const endpoint = `api/stats/${currentFilter}/${encodedName}`;
+      const tableBody = querySelector("#tableBody");
 
       try {
         const statsData = await getRequest(endpoint);
-        console.log("[stats z backendu]", statsData.filter, statsData.data);
+        const rows = statsData.data;
+
+        if (!rows || rows.length === 0) {
+          tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#999;">Brak danych</td></tr>`;
+          return;
+        }
+
+        tableBody.innerHTML = rows.map((row) => `
+          <tr>
+            <td>${row.nick}</td>
+            <td>${gameName}</td>
+            <td>${row.total_points ?? 0}</td>
+            <td>${row.wins ?? 0}</td>
+            <td>${row.played_games ?? 0}</td>
+          </tr>
+        `).join("");
+
       } catch (err) {
         if (err instanceof Error && err.message) {
           alert(err.message);
