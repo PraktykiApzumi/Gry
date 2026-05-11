@@ -41,7 +41,7 @@ function validateRequiredInt($data, $field, $min = null, $max = null)
     return null;
 }
 
-function validateRouteNameParam($params)
+function validateRouteNameParam($params, $min = 2, $max = 100)
 {
     if (!isset($params['name']) || !is_string($params['name'])) {
         errorResponse('Parametr "name" jest wymagany.');
@@ -49,8 +49,8 @@ function validateRouteNameParam($params)
 
     $name = trim($params['name']);
     $length = mb_strlen($name);
-    if ($length < 2 || $length > 100) {
-        errorResponse('Parametr "name" musi miec od 2 do 100 znakow.');
+    if ($length < $min || $length > $max) {
+        errorResponse("Parametr \"name\" musi miec od {$min} do {$max} znakow.");
     }
 
     return $name;

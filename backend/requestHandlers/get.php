@@ -71,4 +71,24 @@ function getGameByName($params)
     ]);
 }
 
+function getPlayerSuggestions($params)
+{
+    $prefix = validateRouteNameParam($params, 1, 100);
+    jsonResponse([
+        'ok' => true,
+        'prefix' => $prefix,
+        'suggestions' => dbHandle()->getPlayerSuggestionsByPrefix($prefix, 3),
+    ]);
+}
+
+function getGameSuggestions($params)
+{
+    $prefix = validateRouteNameParam($params, 1, 100);
+    jsonResponse([
+        'ok' => true,
+        'prefix' => $prefix,
+        'suggestions' => dbHandle()->getGameSuggestionsByPrefix($prefix, 3),
+    ]);
+}
+
 ?>

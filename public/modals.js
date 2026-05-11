@@ -1,50 +1,73 @@
-document.addEventListener("DOMContentLoaded", () => {
+import { postJson } from "./js/api.js";
 
-  function openModal(id) { document.getElementById(id).style.display = "flex"; }
-  function closeModal(id) {
-    const m = document.getElementById(id);
-    m.style.display = "none";
-    m.querySelectorAll("input, select").forEach(el => { el.value = ""; el.style.borderColor = ""; });
+function clearModalFields(modalEl) {
+  modalEl.querySelectorAll("input, select").forEach((el) => {
+    el.value = "";
+    el.style.borderColor = "";
+  });
+}
+
+export function openGameModal(prefillName = "") {
+  const modalEl = document.getElementById("gameModal");
+  if (!modalEl) return;
+  modalEl.style.display = "flex";
+
+  const nameEl = modalEl.querySelector('[name="name"]');
+  if (nameEl && prefillName) {
+    nameEl.value = prefillName;
+    nameEl.focus();
   }
+}
 
-  // Zamknij po kliknięciu w tło
-  document.querySelectorAll(".modal-overlay").forEach(o => {
-    o.addEventListener("click", e => { if (e.target === o) closeModal(o.id); });
+export function closeGameModal() {
+  const modalEl = document.getElementById("gameModal");
+  if (!modalEl) return;
+  modalEl.style.display = "none";
+  clearModalFields(modalEl);
+}
+
+export function initModals() {
+  const modalEl = document.getElementById("gameModal");
+  const closeBtn = document.getElementById("closeGameModal");
+  const saveBtn = document.getElementById("saveGameBtn");
+  if (!modalEl || !closeBtn || !saveBtn) return;
+
+  document.querySelectorAll(".modal-overlay").forEach((overlay) => {
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) {
+        closeGameModal();
+      }
+    });
   });
 
-  // Modal gry
-  document.getElementById("openGameModal").onclick = () => openModal("gameModal");
-  document.getElementById("closeGameModal").onclick = () => closeModal("gameModal");
+  closeBtn.addEventListener("click", () => closeGameModal());
 
-  document.getElementById("saveGameBtn").onclick = async () => {
-    const modal = document.getElementById("gameModal");
-    const nameEl = modal.querySelector('[name="name"]');
-    if (!nameEl.value.trim()) { nameEl.style.borderColor = "red"; return; }
+  saveBtn.addEventListener("click", async () => {
+    const nameEl = modalEl.querySelector('[name="name"]');
+    if (!nameEl || !nameEl.value.trim()) {
+      if (nameEl) nameEl.style.borderColor = "red";
+      return;
+    }
 
     try {
       const payload = {
         name: nameEl.value.trim(),
-        type: modal.querySelector('[name="type"]').value.trim(),
-        maxPlayers: Number(modal.querySelector('[name="maxPlayers"]').value),
-        minPlayers: Number(modal.querySelector('[name="minPlayers"]').value),
-        winType: modal.querySelector('[name="winType"]').value
+        type: modalEl.querySelector('[name="type"]').value.trim(),
+        maxPlayers: Number(modalEl.querySelector('[name="maxPlayers"]').value),
+        minPlayers: Number(modalEl.querySelector('[name="minPlayers"]').value),
+        winType: modalEl.querySelector('[name="winType"]').value
       };
-      const res = await fetch("api/game", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json().catch(() => null);
-      console.log("[API response]", {
-        method: "POST",
-        url: "api/game",
-        status: res.status,
-        ok: res.ok,
-        body: data
-      });
-      if (res.ok) { document.getElementById("gameName").value = payload.name; closeModal("gameModal"); }
-      else nameEl.style.borderColor = "red";
-    } catch { nameEl.style.borderColor = "red"; }
-  };
 
-});
+      const data = await postJson("api/game", payload);
+      console.log("[gra zapisana — backend]", data);
+
+      const gameNameInput = document.getElementById("gameName");
+      if (gameNameInput) {
+        gameNameInput.value = payload.name;
+      }
+      closeGameModal();
+    } catch {
+      if (nameEl) nameEl.style.borderColor = "red";
+    }
+  });
+}
