@@ -210,4 +210,83 @@ class DatabaseHandle {
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+    public function getMatchHistoryByGame($gameName)
+    {
+        $sql = "
+            SELECT 
+                r.id,
+                r.data AS match_date,
+                r.ilosc_graczy AS player_count,
+                g.nick AS winner,
+                gr.nazwa AS game_name
+            FROM rozgrywki r
+            JOIN gracze g  
+                ON r.id_zwyciezcy = g.id
+            JOIN gry gr    
+                ON r.id_gry = gr.id
+            WHERE gr.nazwa = :game_name
+            ORDER BY r.data DESC
+            LIMIT 20
+        ";
+
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute(['game_name' => $gameName]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getMatchHistoryByPlayer($playerNick)
+    {
+        $sql = "
+            SELECT 
+                r.id,
+                r.data AS match_date,
+                r.ilosc_graczy AS player_count,
+                gr.nazwa AS game_name,
+                g_winner.nick AS winner,
+                w.liczba_punktow AS points_scored
+            FROM rozgrywki r
+            JOIN wyniki w        
+                ON r.id = w.id_rozgrywki
+            JOIN gracze g        
+                ON w.id_gracza = g.id
+            JOIN gracze g_winner 
+                ON r.id_zwyciezcy = g_winner.id
+            JOIN gry gr           
+                ON r.id_gry = gr.id
+            WHERE g.nick = :player_nick
+            ORDER BY r.data DESC
+            LIMIT 20
+        ";
+
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute(['player_nick' => $playerNick]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getRecentMatches($limit = 20)
+    {
+        $sql = "
+            SELECT 
+                r.id,
+                r.data AS match_date,
+                r.ilosc_graczy AS player_count,
+                gr.nazwa AS game_name,
+                g.nick AS winner
+            FROM rozgrywki r
+            JOIN gracze g 
+                ON r.id_zwyciezcy = g.id
+            JOIN gry gr   
+                ON r.id_gry = gr.id
+            ORDER BY r.data DESC
+            LIMIT :limit
+        ";
+
+        $stmt = $this->connection->prepare($sql);
+        $stmt->bindValue('limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
