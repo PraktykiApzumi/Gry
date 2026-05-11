@@ -73,7 +73,7 @@ function getGameByName($params)
 
 function getPlayerSuggestions($params)
 {
-    $prefix = validateRouteNameParam($params);
+    $prefix = validateRouteNameParam($params, 1, 100);
     jsonResponse([
         'ok' => true,
         'prefix' => $prefix,
@@ -83,7 +83,7 @@ function getPlayerSuggestions($params)
 
 function getGameSuggestions($params)
 {
-    $prefix = validateRouteNameParam($params);
+    $prefix = validateRouteNameParam($params, 1, 100);
     jsonResponse([
         'ok' => true,
         'prefix' => $prefix,

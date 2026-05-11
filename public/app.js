@@ -1,7 +1,8 @@
 import { qs, qsa } from "./js/dom.js";
 import { toInt } from "./js/utils.js";
 import { getRequest, postJson } from "./js/api.js";
-import { attachConsoleAutocomplete } from "./js/autocomplete.js";
+import { attachAutocomplete } from "./js/autocomplete.js";
+import { initModals, openGameModal } from "./modals.js";
 
 function validateMatchPayload(payload) {
   const errors = [];
@@ -39,28 +40,59 @@ document.addEventListener("DOMContentLoaded", () => {
   const playersContainer = qs("#playersRow");
   const statsForm = qs("#statsForm");
   const statsNameInput = qs("#statsName");
+  const tableBody = qs("#tableBody");
   const filterButtons = qsa(".filter-btn");
 
   let currentFilter = "points";
+  initModals();
 
-  attachConsoleAutocomplete(
+  attachAutocomplete(
     gameNameInput,
     (value) => `api/suggest/game/${encodeURIComponent(value)}`,
-    "game:add-match"
+    {
+      label: "game:add-match",
+      maxSuggestions: 3,
+      emptyLabel: "Dodaj gre",
+      onEmptySelect: async (gameName) => {
+        const gameNameValue = gameName.trim();
+        if (!gameNameValue) return;
+        openGameModal(gameNameValue);
+      }
+    }
   );
 
-  attachConsoleAutocomplete(
+  attachAutocomplete(
     statsNameInput,
     (value) => `api/suggest/game/${encodeURIComponent(value)}`,
-    "game:stats"
+    {
+      label: "game:stats",
+      maxSuggestions: 3
+    }
   );
 
   function attachPlayerAutocomplete(card) {
     const playerNameInput = card.querySelector(".player-name");
-    attachConsoleAutocomplete(
+    attachAutocomplete(
       playerNameInput,
       (value) => `api/suggest/player/${encodeURIComponent(value)}`,
-      "player:match"
+      {
+        label: "player:match",
+        maxSuggestions: 3,
+        emptyLabel: "Dodaj gracza",
+        onEmptySelect: async (playerName) => {
+          const trimmedName = playerName.trim();
+          if (!trimmedName) return;
+          playerNameInput.style.borderColor = "";
+          try {
+            const created = await postJson("api/player", { name: trimmedName });
+            console.log("[gracz zapisany — backend]", created);
+            playerNameInput.value = trimmedName;
+          } catch (err) {
+            playerNameInput.style.borderColor = "red";
+            console.warn("[api/player]", err instanceof Error ? err.message : err);
+          }
+        }
+      }
     );
   }
 
@@ -72,27 +104,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const card = document.createElement("div");
       card.className = "player-card";
       card.innerHTML = `
-        <div class="field-label">Gracz ${i + 1}
-          <button type="button" class="btn-plus" title="Dodaj gracza do bazy">+</button>
-        </div>
+        <div class="field-label">Gracz ${i + 1}</div>
         <input type="text" class="player-name" placeholder="Nazwa gracza" required>
         <input type="number" class="player-points" placeholder="Punkty" min="0" required>
       `;
 
       attachPlayerAutocomplete(card);
-
-      card.querySelector(".btn-plus").addEventListener("click", async () => {
-        const nameInput = card.querySelector(".player-name");
-        const imie = nameInput.value.trim();
-        if (!imie) { nameInput.style.borderColor = "red"; return; }
-        nameInput.style.borderColor = "";
-        try {
-          const created = await postJson("api/player", { name: imie });
-          console.log("[gracz zapisany — backend]", created);
-        } catch (err) {
-          console.warn("[api/player]", err instanceof Error ? err.message : err);
-        }
-      });
       playersContainer.appendChild(card);
     }
   }
@@ -119,7 +136,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const statsData = await getRequest(endpoint);
-      console.log("[stats z backendu]", statsData.filter, statsData.data);
+        const rows = statsData.data;
+
+        if (!rows || rows.length === 0) {
+          tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#999;">Brak danych</td></tr>`;
+          return;
+        }
+
+        tableBody.innerHTML = rows.map((row) => `
+          <tr>
+            <td>${row.nick}</td>
+            <td>${gameName}</td>
+            <td>${row.total_points ?? 0}</td>
+            <td>${row.wins ?? 0}</td>
+            <td>${row.played_games ?? 0}</td>
+          </tr>
+        `).join("");
     } catch (err) {
       if (err instanceof Error && err.message) {
         alert(err.message);
