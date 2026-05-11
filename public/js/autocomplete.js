@@ -12,7 +12,8 @@ export function attachAutocomplete(inputEl, endpointBuilder, options = {}) {
     label = "autocomplete",
     maxSuggestions = 3,
     emptyLabel = null,
-    onEmptySelect = null
+    onEmptySelect = null,
+    onSelect = null
   } = options;
 
   let lastValue = null;
@@ -54,6 +55,9 @@ export function attachAutocomplete(inputEl, endpointBuilder, options = {}) {
       row.addEventListener("click", () => {
         inputEl.value = item;
         closeList();
+        if (typeof onSelect === "function") {
+          onSelect(item);
+        }
       });
       listEl.appendChild(row);
     });

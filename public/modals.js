@@ -44,17 +44,37 @@ export function initModals() {
 
   saveBtn.addEventListener("click", async () => {
     const nameEl = modalEl.querySelector('[name="name"]');
+    const minPlayersEl = modalEl.querySelector('[name="minPlayers"]');
+    const maxPlayersEl = modalEl.querySelector('[name="maxPlayers"]');
     if (!nameEl || !nameEl.value.trim()) {
       if (nameEl) nameEl.style.borderColor = "red";
       return;
     }
 
+    const minPlayers = Number(minPlayersEl?.value);
+    const maxPlayers = Number(maxPlayersEl?.value);
+    if (
+      !Number.isInteger(minPlayers) ||
+      !Number.isInteger(maxPlayers) ||
+      minPlayers < 1 ||
+      maxPlayers < 1 ||
+      minPlayers > maxPlayers
+    ) {
+      if (minPlayersEl) minPlayersEl.style.borderColor = "red";
+      if (maxPlayersEl) maxPlayersEl.style.borderColor = "red";
+      alert("Liczba graczy jest niepoprawna: min musi byc mniejsze lub rowne max.");
+      return;
+    }
+
+    if (minPlayersEl) minPlayersEl.style.borderColor = "";
+    if (maxPlayersEl) maxPlayersEl.style.borderColor = "";
+
     try {
       const payload = {
         name: nameEl.value.trim(),
         type: modalEl.querySelector('[name="type"]').value.trim(),
-        maxPlayers: Number(modalEl.querySelector('[name="maxPlayers"]').value),
-        minPlayers: Number(modalEl.querySelector('[name="minPlayers"]').value),
+        maxPlayers,
+        minPlayers,
         winType: modalEl.querySelector('[name="winType"]').value
       };
 
@@ -65,6 +85,15 @@ export function initModals() {
       if (gameNameInput) {
         gameNameInput.value = payload.name;
       }
+
+      window.dispatchEvent(new CustomEvent("game-created", {
+        detail: {
+          name: payload.name,
+          minPlayers: payload.minPlayers,
+          maxPlayers: payload.maxPlayers
+        }
+      }));
+
       closeGameModal();
     } catch {
       if (nameEl) nameEl.style.borderColor = "red";
