@@ -20,8 +20,8 @@
         <p>Gra:</p>
       </div>
       <input id="gameName" type="text" name="game_name" placeholder="Nazwa gry..." required/>
-      <input id="maxPlayers" type="number" name="max_players" placeholder="Maksymalna liczba graczy" min="1" max="10" value="3"/>
-      <p>Gracze:</p>
+      <input id="maxPlayers" type="number" name="max_players" placeholder="Maksymalna liczba graczy" min="1" max="10" value="3" style="display:none;"/>
+      <p id="playersLabel" style="display:none;">Gracze:</p>
       <div class="players-row" id="playersRow"></div>
       <button type="submit" class="btn-dodaj">Dodaj rozgrywkę</button>
     </form>
