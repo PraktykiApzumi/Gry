@@ -22,13 +22,14 @@ function run(){
 
   async function getRequest(url) {
     const response = await fetch(url);
-    console.log("[PHP state]", {
-      method: "GET",
-      url: response.url || url,
-      ok: response.ok,
-      status: response.status
-    });
     const data = await response.json().catch(() => null);
+    console.log("[API response]", {
+      method: "GET",
+      url,
+      status: response.status,
+      ok: response.ok,
+      body: data
+    });
     if (!response.ok) {
       const message = buildApiErrorMessage(data, `Request failed: ${url}`);
       throw new Error(message);
@@ -43,14 +44,15 @@ function run(){
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
-    console.log("[PHP state]", {
-      method: "POST",
-      url: response.url || url,
-      ok: response.ok,
-      status: response.status
-    });
 
     const data = await response.json().catch(() => null);
+    console.log("[API response]", {
+      method: "POST",
+      url,
+      status: response.status,
+      ok: response.ok,
+      body: data
+    });
 
     if (!response.ok) {
       const message = buildApiErrorMessage(data, `Request failed: ${url}`);
@@ -98,12 +100,6 @@ function run(){
     const statsNameInput = querySelector("#statsName");
     const filterButtons = querySelectorAll(".filter-btn");
 
-    const statsEndpointByFilter = {
-      points: "points",
-      wins: "wins",
-      played: "played"
-    };
-
     let currentFilter = "points";
 
     function renderPlayers() {
@@ -120,12 +116,17 @@ function run(){
           <input type="text" class="player-name" placeholder="Nazwa gracza" required>
           <input type="number" class="player-points" placeholder="Punkty" min="0" required>
         `;
-        card.querySelector(".btn-plus").addEventListener("click", () => {
+        card.querySelector(".btn-plus").addEventListener("click", async () => {
           const nameInput = card.querySelector(".player-name");
           const imie = nameInput.value.trim();
           if (!imie) { nameInput.style.borderColor = "red"; return; }
           nameInput.style.borderColor = "";
-          // TODO: fetch("api/player") jak backend gotowy
+          try {
+            const created = await postJson("api/player", { name: imie });
+            console.log("[gracz zapisany — backend]", created);
+          } catch (err) {
+            console.warn("[api/player]", err instanceof Error ? err.message : err);
+          }
         });
         playersContainer.appendChild(card);
       }
@@ -148,12 +149,12 @@ function run(){
         return;
       }
 
-      const endpointType = statsEndpointByFilter[currentFilter];
       const encodedName = encodeURIComponent(gameName);
-      const endpoint = `api/stats/${endpointType}/${encodedName}`;
+      const endpoint = `api/stats/${currentFilter}/${encodedName}`;
 
       try {
-        await getRequest(endpoint);
+        const statsData = await getRequest(endpoint);
+        console.log("[stats z backendu]", statsData.filter, statsData.data);
       } catch (err) {
         if (err instanceof Error && err.message) {
           alert(err.message);
@@ -200,7 +201,8 @@ function run(){
       }
 
       try {
-        await postJson("api/match", matchPayload);
+        const matchRes = await postJson("api/match", matchPayload);
+        console.log("[mecz zapisany — backend]", matchRes);
       } catch (err) {
         if (err instanceof Error && err.message) {
           alert(err.message);
