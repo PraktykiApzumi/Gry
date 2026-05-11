@@ -59,11 +59,11 @@
   <div id="gameModal" class="modal-overlay" style="display:none;">
     <div class="modal">
       <h3>Dodaj nową grę</h3>
-      <input type="text" id="modalGameName" placeholder="Nazwa gry..." />
-      <input type="text" id="modalGameRodzaj" placeholder="Rodzaj (np. karciana, strategiczna...)" />
-      <input type="number" id="modalGameMax" placeholder="Maks. graczy" min="1" max="20" />
-      <input type="number" id="modalGameMin" placeholder="Min. graczy" min="1" max="20" />
-      <select id="modalGameWygrana">
+      <input type="text" id="game_name" name="name" placeholder="Nazwa gry..." />
+      <input type="text" id="game_type" name="type" placeholder="Rodzaj (np. karciana, strategiczna...)" />
+      <input type="number" id="game_maxPlayers" name="maxPlayers" placeholder="Maks. graczy" min="1" max="20" />
+      <input type="number" id="game_minPlayers" name="minPlayers" placeholder="Min. graczy" min="1" max="20" />
+      <select id="game_winType" name="winType">
         <option value="">Rodzaj wygranej...</option>
         <option value="punktowa">Punktowa</option>
         <option value="punktowa-malejaca">Punktowa malejąca</option>

@@ -17,24 +17,34 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("closeGameModal").onclick = () => closeModal("gameModal");
 
   document.getElementById("saveGameBtn").onclick = async () => {
-    const nazwa = document.getElementById("modalGameName");
-    if (!nazwa.value.trim()) { nazwa.style.borderColor = "red"; return; }
+    const modal = document.getElementById("gameModal");
+    const nameEl = modal.querySelector('[name="name"]');
+    if (!nameEl.value.trim()) { nameEl.style.borderColor = "red"; return; }
 
     try {
+      const payload = {
+        name: nameEl.value.trim(),
+        type: modal.querySelector('[name="type"]').value.trim(),
+        maxPlayers: Number(modal.querySelector('[name="maxPlayers"]').value),
+        minPlayers: Number(modal.querySelector('[name="minPlayers"]').value),
+        winType: modal.querySelector('[name="winType"]').value
+      };
       const res = await fetch("api/game", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nazwa: nazwa.value.trim(),
-          rodzaj: document.getElementById("modalGameRodzaj").value.trim(),
-          max_graczy: document.getElementById("modalGameMax").value,
-          min_graczy: document.getElementById("modalGameMin").value,
-          rodzaj_wygranej: document.getElementById("modalGameWygrana").value
-        })
+        body: JSON.stringify(payload)
       });
-      if (res.ok) { document.getElementById("gameName").value = nazwa.value.trim(); closeModal("gameModal"); }
-      else nazwa.style.borderColor = "red";
-    } catch { nazwa.style.borderColor = "red"; }
+      const data = await res.json().catch(() => null);
+      console.log("[API response]", {
+        method: "POST",
+        url: "api/game",
+        status: res.status,
+        ok: res.ok,
+        body: data
+      });
+      if (res.ok) { document.getElementById("gameName").value = payload.name; closeModal("gameModal"); }
+      else nameEl.style.borderColor = "red";
+    } catch { nameEl.style.borderColor = "red"; }
   };
 
 });

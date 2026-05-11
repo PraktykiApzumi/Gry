@@ -66,7 +66,7 @@ class DatabaseHandle {
         return true;
     }
 
-    public function addMatch($winnerId, $gameId, $matchDate, $playerCount) {
+    public function addMatch($winnerId, $gameId, $matchDate, $playerCount): int {
         $sql = "INSERT INTO rozgrywki (id_zwyciezcy, id_gry, data, ilosc_graczy)
                 VALUES (:winner_id, :game_id, :match_date, :result)";
 
@@ -77,6 +77,23 @@ class DatabaseHandle {
             'match_date' => $matchDate,
             'result' => $playerCount
         ]);
+        return (int) $this->connection->lastInsertId();
+    }
+
+    public function getPlayerByNick(string $nick): ?array {
+        $sql = 'SELECT * FROM gracze WHERE nick = :nick LIMIT 1';
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute(['nick' => $nick]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
+    }
+
+    public function getGameRowByName(string $name): ?array {
+        $sql = 'SELECT * FROM gry WHERE nazwa = :nazwa LIMIT 1';
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute(['nazwa' => $name]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
     }
 
     public function addScore($matchId, $playerId, $points) {
@@ -97,15 +114,15 @@ class DatabaseHandle {
         SELECT 
             g.id,
             g.nick,
-            COUNT(w.id_rozgrywki) AS played_games,
-            COUNT(r.id_zwyciezcy) AS wins,
+            COUNT(DISTINCT r.id) AS played_games,
+            COUNT(DISTINCT CASE WHEN r.id_zwyciezcy = g.id THEN r.id END) AS wins,
             SUM(w.liczba_punktow) AS total_points
-        FROM gracze g        
-        JOIN wyniki w 
+        FROM gracze g
+        JOIN wyniki w
             ON g.id = w.id_gracza
-        JOIN rozgrywki r 
-            ON g.id = r.id_zwyciezcy
-        JOIN gry gr 
+        JOIN rozgrywki r
+            ON w.id_rozgrywki = r.id
+        JOIN gry gr
             ON r.id_gry = gr.id
         WHERE gr.nazwa = :game_name
         GROUP BY g.id, g.nick
@@ -126,8 +143,8 @@ class DatabaseHandle {
         SELECT 
             g.id,
             g.nick,
-            COUNT(w.id_rozgrywki) AS played_games,
-            COUNT(r.id_zwyciezcy) AS wins,
+            COUNT(DISTINCT r.id) AS played_games,
+            COUNT(DISTINCT CASE WHEN r.id_zwyciezcy = g.id THEN r.id END) AS wins,
             SUM(w.liczba_punktow) AS total_points
         FROM gracze g
         JOIN wyniki w 
@@ -155,8 +172,8 @@ class DatabaseHandle {
         SELECT 
             g.id,
             g.nick,
-            COUNT(w.id_rozgrywki) AS played_games,
-            COUNT(r.id_zwyciezcy) AS wins,
+            COUNT(DISTINCT r.id) AS played_games,
+            COUNT(DISTINCT CASE WHEN r.id_zwyciezcy = g.id THEN r.id END) AS wins,
             SUM(w.liczba_punktow) AS total_points
         FROM gracze g
         JOIN wyniki w 
