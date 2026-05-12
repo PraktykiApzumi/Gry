@@ -483,19 +483,47 @@ class DatabaseHandle {
         $stmt->execute(['match_id' => $matchId]);
     }
 
-    public function deactivateGame(int $gameId): bool
+    public function deactivatePlayer(int $playerId): bool
     {
-        $sql = "UPDATE gry SET aktywna = 0 WHERE id = :game_id AND aktywna = 1";
+        $deletedNick = 'deleted_user_' . bin2hex(random_bytes(16));
+
+        $sql = "
+        UPDATE gracze
+        SET aktywny = 0,
+            nick = :deleted_nick
+        WHERE id = :player_id
+          AND aktywny = 1
+    ";
+
         $stmt = $this->connection->prepare($sql);
-        $stmt->execute(['game_id' => $gameId]);
+
+        $stmt->execute([
+            'player_id' => $playerId,
+            'deleted_nick' => $deletedNick
+        ]);
+
         return $stmt->rowCount() > 0;
     }
 
-    public function deactivatePlayer(int $playerId): bool
+    public function deactivateGame(int $gameId): bool
     {
-        $sql = "UPDATE gracze SET aktywny = 0 WHERE id = :player_id AND aktywny = 1";
+        $deletedName = 'deleted_game_' . bin2hex(random_bytes(16));
+
+        $sql = "
+        UPDATE gry
+        SET aktywna = 0,
+            nazwa = :deleted_name
+        WHERE id = :game_id
+          AND aktywna = 1
+    ";
+
         $stmt = $this->connection->prepare($sql);
-        $stmt->execute(['player_id' => $playerId]);
+
+        $stmt->execute([
+            'game_id' => $gameId,
+            'deleted_name' => $deletedName
+        ]);
+
         return $stmt->rowCount() > 0;
     }
 
