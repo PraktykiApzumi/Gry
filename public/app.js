@@ -3,6 +3,7 @@ import { getRequest } from "./js/api.js";
 import { attachAutocomplete } from "./js/autocomplete.js";
 import { initModals, openGameModal } from "./modals.js";
 import { initMatchForm } from "./js/matchForm.js";
+import { initHistory } from "./js/history.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   const tabButtons = qsa(".tab-btn");
@@ -27,6 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
     playersContainer,
     openGameModal
   });
+  initHistory();
 
   attachAutocomplete(
     statsNameInput,
