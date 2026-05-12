@@ -123,4 +123,37 @@ function getRecentGames($params = [])
     ]);
 }
 
+function getAdminPlayers($params = [])
+{
+    jsonResponse([
+        'ok' => true,
+        'data' => dbHandle()->getAllPlayers(),
+    ]);
+}
+
+function getAdminGames($params = [])
+{
+    jsonResponse([
+        'ok' => true,
+        'data' => dbHandle()->getAllGames(),
+    ]);
+}
+
+function getAdminMatches($params = [])
+{
+    jsonResponse([
+        'ok' => true,
+        'data' => dbHandle()->getAllMatches(),
+    ]);
+}
+
+function getGameScores($params)
+{    
+    $id = validateRouteIdParam($params, 'gameId');
+    jsonResponse([
+        'ok' => true,
+        'data' => dbHandle()->getAllScores($id),
+    ]);
+}
+
 ?>

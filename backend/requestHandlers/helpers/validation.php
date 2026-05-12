@@ -55,4 +55,18 @@ function validateRouteNameParam($params, $min = 2, $max = 100)
 
     return $name;
 }
+
+function validateRouteIdParam($params, $field = 'id')
+{
+    if (!isset($params[$field])) {
+        errorResponse("Parametr \"{$field}\" jest wymagany.");
+    }
+
+    $id = filter_var($params[$field], FILTER_VALIDATE_INT);
+    if ($id === false || $id <= 0) {
+        errorResponse("Parametr \"{$field}\" musi byc dodatnia liczba calkowita.");
+    }
+
+    return (int) $id;
+}
 ?>

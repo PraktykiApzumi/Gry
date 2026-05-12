@@ -5,7 +5,7 @@ class DatabaseHandle {
     private static ?DatabaseHandle $instance = null;
     private PDO $connection;
 
-    private function __construct($host, $dbname, $username, $password) {
+    private function __construct(string $host, string $dbname, string $username, string $password) {
         $dsn = "mysql:host=$host;dbname=$dbname;charset=utf8";
 
         try {
@@ -27,7 +27,7 @@ class DatabaseHandle {
         return self::$instance;
     }
 
-    public function addPlayer($nickname): bool {
+    public function addPlayer(string $nickname): bool {
         $sql = "SELECT * from `gracze` where `gracze`.`nick` = :nick";
         $stmt = $this->connection->prepare($sql);
         $stmt->execute([
@@ -44,7 +44,7 @@ class DatabaseHandle {
         return true;
     }
 
-    public function addGame($name, $type, $minPlayers, $maxPlayers, $winType): bool {
+    public function addGame(string $name, string $type, int $minPlayers, int $maxPlayers, string $winType): bool {
         $sql = "SELECT * from `gry` where `gry`.`nazwa` = :nazwa"; 
         $stmt = $this->connection->prepare($sql);
         $stmt->execute([
@@ -66,7 +66,7 @@ class DatabaseHandle {
         return true;
     }
 
-    public function addMatch($winnerId, $gameId, $matchDate, $playerCount): int {
+    public function addMatch(int $winnerId, int $gameId, string $matchDate, int $playerCount): int {
         $sql = "INSERT INTO rozgrywki (id_zwyciezcy, id_gry, data, ilosc_graczy)
                 VALUES (:winner_id, :game_id, :match_date, :result)";
 
@@ -81,7 +81,7 @@ class DatabaseHandle {
     }
 
     public function getPlayerByNick(string $nick): ?array {
-        $sql = 'SELECT * FROM gracze WHERE nick = :nick LIMIT 1';
+        $sql = 'SELECT * FROM gracze WHERE nick = :nick AND aktywny = 1 LIMIT 1';
         $stmt = $this->connection->prepare($sql);
         $stmt->execute(['nick' => $nick]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -89,7 +89,7 @@ class DatabaseHandle {
     }
 
     public function getGameRowByName(string $name): ?array {
-        $sql = 'SELECT * FROM gry WHERE nazwa = :nazwa LIMIT 1';
+        $sql = 'SELECT * FROM gry WHERE nazwa = :nazwa AND aktywna = 1 LIMIT 1';
         $stmt = $this->connection->prepare($sql);
         $stmt->execute(['nazwa' => $name]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -98,7 +98,7 @@ class DatabaseHandle {
 
     public function getPlayerSuggestionsByPrefix(string $prefix, int $limit = 3): array {
         $safeLimit = max(1, min(10, $limit));
-        $sql = "SELECT nick FROM gracze WHERE nick LIKE :prefix ORDER BY nick ASC LIMIT {$safeLimit}";
+        $sql = "SELECT nick FROM gracze WHERE nick LIKE :prefix AND aktywny = 1 ORDER BY nick ASC LIMIT {$safeLimit}";
         $stmt = $this->connection->prepare($sql);
         $stmt->execute(['prefix' => $prefix . '%']);
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -106,13 +106,13 @@ class DatabaseHandle {
 
     public function getGameSuggestionsByPrefix(string $prefix, int $limit = 3): array {
         $safeLimit = max(1, min(10, $limit));
-        $sql = "SELECT nazwa FROM gry WHERE nazwa LIKE :prefix ORDER BY nazwa ASC LIMIT {$safeLimit}";
+        $sql = "SELECT nazwa FROM gry WHERE nazwa LIKE :prefix AND aktywna = 1 ORDER BY nazwa ASC LIMIT {$safeLimit}";
         $stmt = $this->connection->prepare($sql);
         $stmt->execute(['prefix' => $prefix . '%']);
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
-    public function addScore($matchId, $playerId, $points) {
+    public function addScore(int $matchId, string $playerId, string $points) {
         $sql = "INSERT INTO wyniki (id_rozgrywki, id_gracza, liczba_punktow)
                 VALUES (:match_id, :player_id, :points)";
 
@@ -124,7 +124,7 @@ class DatabaseHandle {
         ]);
     }
 
-    public function getWinSortedLeaderboard($gameName)
+    public function getWinSortedLeaderboard(string $gameName): array
     {
         $sql = "
         SELECT 
@@ -141,6 +141,8 @@ class DatabaseHandle {
         JOIN gry gr
             ON r.id_gry = gr.id
         WHERE gr.nazwa = :game_name
+          AND g.aktywny = 1
+          AND gr.aktywna = 1
         GROUP BY g.id, g.nick
         ORDER BY wins DESC
     ";
@@ -153,7 +155,7 @@ class DatabaseHandle {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getPlayedSortedLeaderboard($gameName)
+    public function getPlayedSortedLeaderboard(string $gameName): array
     {
         $sql = "
         SELECT 
@@ -170,6 +172,8 @@ class DatabaseHandle {
         JOIN gry gr 
             ON r.id_gry = gr.id
         WHERE gr.nazwa = :game_name
+          AND g.aktywny = 1
+          AND gr.aktywna = 1
         GROUP BY g.id, g.nick
         ORDER BY played_games DESC
     ";
@@ -182,7 +186,7 @@ class DatabaseHandle {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getPointsSortedLeaderboard($gameName)
+    public function getPointsSortedLeaderboard(string $gameName): array
     {
         $sql = "
         SELECT 
@@ -199,6 +203,8 @@ class DatabaseHandle {
         JOIN gry gr 
             ON r.id_gry = gr.id
         WHERE gr.nazwa = :game_name
+          AND g.aktywny = 1
+          AND gr.aktywna = 1
         GROUP BY g.id, g.nick
         ORDER BY total_points DESC
     ";
@@ -210,7 +216,7 @@ class DatabaseHandle {
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-    public function getMatchHistoryByGame($gameName)
+    public function getMatchHistoryByGame(string $gameName): array
     {
         $sql = "
             SELECT 
@@ -225,6 +231,8 @@ class DatabaseHandle {
             JOIN gry gr    
                 ON r.id_gry = gr.id
             WHERE gr.nazwa = :game_name
+              AND g.aktywny = 1
+              AND gr.aktywna = 1
             ORDER BY r.data DESC
             LIMIT 20
         ";
@@ -235,7 +243,7 @@ class DatabaseHandle {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getMatchHistoryByPlayer($playerNick)
+    public function getMatchHistoryByPlayer(string $playerNick): array
     {
         $sql = "
             SELECT 
@@ -255,6 +263,9 @@ class DatabaseHandle {
             JOIN gry gr           
                 ON r.id_gry = gr.id
             WHERE g.nick = :player_nick
+              AND g.aktywny = 1
+              AND g_winner.aktywny = 1
+              AND gr.aktywna = 1
             ORDER BY r.data DESC
             LIMIT 20
         ";
@@ -265,7 +276,7 @@ class DatabaseHandle {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getRecentMatches($limit = 20)
+    public function getRecentMatches(int $limit = 20): array
     {
         $sql = "
             SELECT 
@@ -279,6 +290,8 @@ class DatabaseHandle {
                 ON r.id_zwyciezcy = g.id
             JOIN gry gr   
                 ON r.id_gry = gr.id
+            WHERE g.aktywny = 1
+              AND gr.aktywna = 1
             ORDER BY r.data DESC
             LIMIT :limit
         ";
@@ -288,5 +301,209 @@ class DatabaseHandle {
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getAllPlayers(): array
+    {
+        $sql = "SELECT id, nick FROM gracze WHERE aktywny = 1 ORDER BY id DESC";
+        $stmt = $this->connection->query($sql);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getAllGames(): array
+    {
+        $sql = "SELECT id, nazwa, rodzaj, min_graczy, max_graczy, rodzaj_wygranej FROM gry WHERE aktywna = 1 ORDER BY id DESC";
+        $stmt = $this->connection->query($sql);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getAllMatches(): array
+    {
+        $sql = "
+            SELECT
+                r.id,
+                r.id_gry,
+                gr.nazwa AS game_name,
+                r.id_zwyciezcy,
+                g.nick AS winner_nick,
+                r.data,
+                r.ilosc_graczy
+            FROM rozgrywki r
+            JOIN gry gr ON gr.id = r.id_gry
+            JOIN gracze g ON g.id = r.id_zwyciezcy
+            WHERE gr.aktywna = 1
+              AND g.aktywny = 1
+            ORDER BY r.id DESC
+        ";
+        $stmt = $this->connection->query($sql);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getAllScores(int $matchId): array
+    {
+        $sql = "
+        SELECT
+            w.id,
+            w.id_rozgrywki,
+            w.id_gracza,
+            w.liczba_punktow,
+            g.nick AS player_nick
+        FROM wyniki w
+        JOIN gracze g ON g.id = w.id_gracza
+        JOIN rozgrywki r ON r.id = w.id_rozgrywki
+        JOIN gry gr ON gr.id = r.id_gry
+        WHERE g.aktywny = 1
+          AND gr.aktywna = 1
+          AND w.id_rozgrywki = :rozgrywka_id
+        ORDER BY w.id DESC
+    ";
+
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute([
+            'rozgrywka_id' => $matchId
+        ]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    public function playerExists(int $id): bool
+    {
+        $sql = "SELECT id FROM gracze WHERE id = :id AND aktywny = 1 LIMIT 1";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute(['id' => $id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) !== false;
+    }
+
+    public function gameExists(int $id): bool
+    {
+        $sql = "SELECT id FROM gry WHERE id = :id AND aktywna = 1 LIMIT 1";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute(['id' => $id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) !== false;
+    }
+
+    public function matchExists(int $id): bool
+    {
+        $sql = "SELECT id FROM rozgrywki WHERE id = :id LIMIT 1";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute(['id' => $id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) !== false;
+    }
+
+    public function scoreExists(int $id): bool
+    {
+        $sql = "SELECT id FROM wyniki WHERE id = :id LIMIT 1";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute(['id' => $id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) !== false;
+    }
+
+    public function updatePlayer(int $id, string $nickname): bool
+    {
+        $sql = "SELECT id FROM gracze WHERE nick = :nick AND id != :id AND aktywny = 1 LIMIT 1";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute(['nick' => $nickname, 'id' => $id]);
+        if ($stmt->fetch(PDO::FETCH_ASSOC) !== false) {
+            return false;
+        }
+
+        $sql = "UPDATE gracze SET nick = :nick WHERE id = :id AND aktywny = 1";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute(['nick' => $nickname, 'id' => $id]);
+        return $stmt->rowCount() > 0;
+    }
+
+    public function updateGame(int $id, string $name, string $type, int $minPlayers, int $maxPlayers, string $winType): bool
+    {
+        $sql = "SELECT id FROM gry WHERE nazwa = :name AND id != :id AND aktywna = 1 LIMIT 1";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute(['name' => $name, 'id' => $id]);
+        if ($stmt->fetch(PDO::FETCH_ASSOC) !== false) {
+            return false;
+        }
+
+        $sql = "
+            UPDATE gry
+            SET nazwa = :name, rodzaj = :type, min_graczy = :min_players, max_graczy = :max_players, rodzaj_wygranej = :win_type
+            WHERE id = :id AND aktywna = 1
+        ";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute([
+            'id' => $id,
+            'name' => $name,
+            'type' => $type,
+            'min_players' => $minPlayers,
+            'max_players' => $maxPlayers,
+            'win_type' => $winType,
+        ]);
+        return $stmt->rowCount() > 0;
+    }
+
+    public function updateMatch(int $id, int $winnerId, int $gameId, int $playerCount): bool
+    {
+        $sql = "
+            UPDATE rozgrywki
+            SET id_zwyciezcy = :winner_id, id_gry = :game_id, ilosc_graczy = :player_count
+            WHERE id = :id
+        ";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute([
+            'id' => $id,
+            'winner_id' => $winnerId,
+            'game_id' => $gameId,
+            'player_count' => $playerCount,
+        ]);
+        return $stmt->rowCount() > 0;
+    }
+
+    public function updateScore(int $id, int $matchId, int $playerId, int $points): bool
+    {
+        $sql = "
+            UPDATE wyniki
+            SET id_rozgrywki = :match_id, id_gracza = :player_id, liczba_punktow = :points
+            WHERE id = :id
+        ";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute([
+            'id' => $id,
+            'match_id' => $matchId,
+            'player_id' => $playerId,
+            'points' => $points,
+        ]);
+        return $stmt->rowCount() > 0;
+    }
+
+    public function deleteMatchWithScores(int $matchId): void
+    {
+        $sql = "DELETE FROM wyniki WHERE id_rozgrywki = :match_id";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute(['match_id' => $matchId]);
+
+        $sql = "DELETE FROM rozgrywki WHERE id = :match_id";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute(['match_id' => $matchId]);
+    }
+
+    public function deactivateGame(int $gameId): bool
+    {
+        $sql = "UPDATE gry SET aktywna = 0 WHERE id = :game_id AND aktywna = 1";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute(['game_id' => $gameId]);
+        return $stmt->rowCount() > 0;
+    }
+
+    public function deactivatePlayer(int $playerId): bool
+    {
+        $sql = "UPDATE gracze SET aktywny = 0 WHERE id = :player_id AND aktywny = 1";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute(['player_id' => $playerId]);
+        return $stmt->rowCount() > 0;
+    }
+
+    public function deleteScore(int $scoreId): bool
+    {
+        $sql = "DELETE FROM wyniki WHERE id = :score_id";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute(['score_id' => $scoreId]);
+        return $stmt->rowCount() > 0;
     }
 }

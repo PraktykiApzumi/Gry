@@ -51,3 +51,46 @@ export async function postJson(url, payload) {
 
   return data;
 }
+
+export async function putJson(url, payload) {
+  const response = await fetch(url, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await response.json().catch(() => null);
+  console.log("[API response]", {
+    method: "PUT",
+    url,
+    status: response.status,
+    ok: response.ok,
+    body: data
+  });
+
+  if (!response.ok) {
+    const message = buildApiErrorMessage(data, `Request failed: ${url}`);
+    throw new Error(message);
+  }
+
+  return data;
+}
+
+export async function deleteRequest(url) {
+  const response = await fetch(url, { method: "DELETE" });
+  const data = await response.json().catch(() => null);
+  console.log("[API response]", {
+    method: "DELETE",
+    url,
+    status: response.status,
+    ok: response.ok,
+    body: data
+  });
+
+  if (!response.ok) {
+    const message = buildApiErrorMessage(data, `Request failed: ${url}`);
+    throw new Error(message);
+  }
+
+  return data;
+}
