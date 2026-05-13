@@ -145,62 +145,77 @@
       </div>
     </div>
   </div>
-    <div id="adminView" class="view">
-      <h2>Admin panel</h2>
-    
-      <div class="history-tabs">
-        <button type="button" class="history-tab-btn active">
-          Gracze
-        </button>
-    
-        <button type="button" class="history-tab-btn">
-          Gry
-        </button>
-    
-        <button type="button" class="history-tab-btn">
-          Rozgrywki
-        </button>
+  <div id="adminView" class="view">
+    <h2>Admin panel</h2>
+
+    <div class="admin-tabs">
+      <button type="button" class="admin-tab-btn active" data-admin-panel="players">Gracze</button>
+      <button type="button" class="admin-tab-btn" data-admin-panel="games">Gry</button>
+      <button type="button" class="admin-tab-btn" data-admin-panel="matches">Rozgrywki</button>
+    </div>
+
+    <div id="adminPlayersPanel" class="admin-panel active" data-admin-panel="players">
+      <div class="admin-toolbar">
+        <button type="button" class="btn-dodaj" id="addPlayerBtn">Dodaj gracza</button>
       </div>
-    
-      <div class="history-panel active">
-    
-        <div style="margin: 14px 0;">
-          <button type="button" class="btn-dodaj" id="addPlayerBtn" style="width:auto; padding: 9px 24px;">
-            Dodaj gracza
-          </button>
-        </div>
-    
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Nick</th>
-                <th>Akcje</th>
-              </tr>
-            </thead>
-    
-            <tbody id="adminPlayersBody">
-    
-              <tr>
-                <td>1</td>
-                <td>PlayerOne</td>
-                <td>
-                    <button type="button" class="btn-edit">
-                      Modyfikuj
-                    </button>
-    
-                    <button type="button" class="btn-delete">
-                      Usuń
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="table-wrapper admin-table-wrapper">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nick</th>
+              <th>Akcje</th>
+            </tr>
+          </thead>
+          <tbody id="adminPlayersBody"></tbody>
+        </table>
       </div>
     </div>
+
+    <div id="adminGamesPanel" class="admin-panel" data-admin-panel="games">
+      <div class="admin-toolbar">
+        <button type="button" class="btn-dodaj" id="addGameBtn">Dodaj gre</button>
+      </div>
+      <div class="table-wrapper admin-table-wrapper">
+        <table class="admin-table admin-games-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nazwa</th>
+              <th>Rodzaj</th>
+              <th>Min</th>
+              <th>Max</th>
+              <th>Wygrana</th>
+              <th>Akcje</th>
+            </tr>
+          </thead>
+          <tbody id="adminGamesBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="adminMatchesPanel" class="admin-panel" data-admin-panel="matches">
+      <div class="admin-toolbar">
+        <button type="button" class="btn-dodaj" id="addMatchBtn">Dodaj rozgrywke</button>
+      </div>
+      <div class="table-wrapper admin-table-wrapper">
+        <table class="admin-table admin-matches-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Data</th>
+              <th>Gra</th>
+              <th>Zwyciezca</th>
+              <th>Graczy</th>
+              <th>Wyniki</th>
+              <th>Akcje</th>
+            </tr>
+          </thead>
+          <tbody id="adminMatchesBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
   <!-- MODAL: Dodaj grę -->
   <div id="gameModal" class="modal-overlay" style="display:none;">
     <div class="modal">

@@ -4,6 +4,7 @@ import { attachAutocomplete } from "./js/autocomplete.js";
 import { initModals, openGameModal } from "./modals.js";
 import { initMatchForm } from "./js/matchForm.js";
 import { initHistory } from "./js/history.js";
+import { loadAdminPanel } from "./js/adminPanel.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   const tabButtons = qsa(".tab-btn");
@@ -29,6 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
     openGameModal
   });
   initHistory();
+  loadAdminPanel();
 
   attachAutocomplete(
     statsNameInput,

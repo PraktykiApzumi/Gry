@@ -375,9 +375,96 @@ tr:hover td {
 }
 .history-panel { display: none; }
 .history-panel.active { display: block; }
+.admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.admin-tab-btn {
+  padding: 7px 18px;
+  border: 1px solid #ccc;
+  background: #fff;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.admin-tab-btn:hover {
+  background: #eaf4fb;
+}
+
+.admin-tab-btn.active {
+  background: #2c3e50;
+  color: #fff;
+  border-color: #2c3e50;
+}
+
+.admin-panel {
+  display: none;
+}
+
+.admin-panel.active {
+  display: block;
+}
+
+.admin-toolbar {
+  margin: 14px 0;
+}
+
+.admin-toolbar .btn-dodaj {
+  width: auto;
+  padding: 9px 24px;
+}
+
+.admin-table-wrapper {
+  max-width: 100%;
+}
+
+.admin-table {
+  min-width: 620px;
+}
+
+.admin-games-table {
+  min-width: 760px;
+}
+
+.admin-matches-table {
+  min-width: 920px;
+}
+
+.admin-empty {
+  text-align: center;
+  color: #999;
+}
+
+.score-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 220px;
+}
+
+.score-chip {
+  display: inline-flex;
+  align-items: center;
+  background: #eef5fb;
+  border: 1px solid #d8e8f5;
+  border-radius: 4px;
+  color: #2c3e50;
+  font-size: 12px;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
 
 @media (max-width: 600px) {
   .history-tab-btn {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  .admin-tab-btn {
     font-size: 12px;
     padding: 6px 10px;
   }
