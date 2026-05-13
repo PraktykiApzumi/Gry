@@ -11,7 +11,8 @@
   <div class="tabs">
     <button type="button" class="tab-btn active" data-view="addView">Dodaj rozgrywkę</button>
     <button type="button" class="tab-btn" data-view="statsView">Statystyki</button>
-    <button type="button" class="tab-btn" data-view="historyView">Historia</button>
+    <button type="button" class="tab-btn" data-view="historyView">Historia</button> 
+    <button type="button" class="tab-btn" data-view="adminView">Admin panel</button>
   </div>
   <hr>
 
@@ -65,17 +66,18 @@
   <!-- WIDOK: Historia -->
   <div id="historyView" class="view">
     <h2>Historia rozgrywek</h2>
-
+  
     <div class="history-tabs">
       <button type="button" class="history-tab-btn active" data-history="recent">Ostatnie rozgrywki</button>
       <button type="button" class="history-tab-btn" data-history="game">Wg gry</button>
       <button type="button" class="history-tab-btn" data-history="player">Wg gracza</button>
     </div>
-
+  
     <!-- Ostatnie rozgrywki -->
     <div id="historyRecent" class="history-panel active">
       <div style="margin: 12px 0;">
-        <button type="button" class="btn-dodaj" id="loadRecentBtn" style="width:auto; padding: 9px 24px;">Załaduj ostatnie rozgrywki</button>
+        <button type="button" class="btn-dodaj" id="loadRecentBtn" style="width:auto; padding: 9px 24px;">Załaduj ostatnie
+          rozgrywki</button>
       </div>
       <div class="table-wrapper">
         <table>
@@ -88,11 +90,14 @@
             </tr>
           </thead>
           <tbody id="recentHistoryBody">
-            <tr><td colspan="4" style="text-align:center; color:#999;">Kliknij „Załaduj" aby pobrać dane</td></tr>
+            <tr>
+              <td colspan="4" style="text-align:center; color:#999;">Kliknij „Załaduj" aby pobrać dane</td>
+            </tr>
           </tbody>
         </table>
       </div>
     </div>
+  
 
     <!-- Historia wg gry -->
     <div id="historyGame" class="history-panel">
@@ -140,7 +145,62 @@
       </div>
     </div>
   </div>
-
+    <div id="adminView" class="view">
+      <h2>Admin panel</h2>
+    
+      <div class="history-tabs">
+        <button type="button" class="history-tab-btn active">
+          Gracze
+        </button>
+    
+        <button type="button" class="history-tab-btn">
+          Gry
+        </button>
+    
+        <button type="button" class="history-tab-btn">
+          Rozgrywki
+        </button>
+      </div>
+    
+      <div class="history-panel active">
+    
+        <div style="margin: 14px 0;">
+          <button type="button" class="btn-dodaj" id="addPlayerBtn" style="width:auto; padding: 9px 24px;">
+            Dodaj gracza
+          </button>
+        </div>
+    
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nick</th>
+                <th>Akcje</th>
+              </tr>
+            </thead>
+    
+            <tbody id="adminPlayersBody">
+    
+              <tr>
+                <td>1</td>
+                <td>PlayerOne</td>
+                <td>
+                    <button type="button" class="btn-edit">
+                      Modyfikuj
+                    </button>
+    
+                    <button type="button" class="btn-delete">
+                      Usuń
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   <!-- MODAL: Dodaj grę -->
   <div id="gameModal" class="modal-overlay" style="display:none;">
     <div class="modal">
