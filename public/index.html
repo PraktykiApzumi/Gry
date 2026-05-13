@@ -237,6 +237,33 @@
     </div>
   </div>
 
+  <div id="adminEntityModal" class="modal-overlay" style="display:none;">
+    <div class="modal admin-modal">
+      <h3 id="adminEntityModalTitle">Edycja</h3>
+      <form id="adminEntityForm">
+        <div id="adminEntityFields" class="admin-form-grid"></div>
+        <div class="modal-buttons">
+          <button type="submit" class="btn-dodaj" id="adminEntitySaveBtn">Zapisz</button>
+          <button type="button" class="btn-anuluj" id="adminEntityCloseBtn">Anuluj</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="adminScoresModal" class="modal-overlay" style="display:none;">
+    <div class="modal admin-modal admin-scores-modal">
+      <h3 id="adminScoresModalTitle">Wyniki rozgrywki</h3>
+      <form id="adminScoresForm">
+        <div id="adminScoresMeta" class="admin-match-meta"></div>
+        <div id="adminScoresFields" class="admin-score-list"></div>
+        <div class="modal-buttons">
+          <button type="submit" class="btn-dodaj" id="adminScoresSaveBtn">Zapisz wyniki</button>
+          <button type="button" class="btn-anuluj" id="adminScoresCloseBtn">Anuluj</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script type="module" src="app.js"></script>
 </body>
 </html>

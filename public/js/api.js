@@ -25,6 +25,10 @@ export async function getRequest(url) {
     throw new Error(message);
   }
 
+  if (data === null) {
+    throw new Error(`Brak poprawnej odpowiedzi JSON: ${url}`);
+  }
+
   return data;
 }
 
@@ -47,6 +51,10 @@ export async function postJson(url, payload) {
   if (!response.ok) {
     const message = buildApiErrorMessage(data, `Request failed: ${url}`);
     throw new Error(message);
+  }
+
+  if (data === null) {
+    throw new Error(`Brak poprawnej odpowiedzi JSON: ${url}`);
   }
 
   return data;
@@ -73,6 +81,10 @@ export async function putJson(url, payload) {
     throw new Error(message);
   }
 
+  if (data === null) {
+    throw new Error(`Brak poprawnej odpowiedzi JSON: ${url}`);
+  }
+
   return data;
 }
 
@@ -90,6 +102,10 @@ export async function deleteRequest(url) {
   if (!response.ok) {
     const message = buildApiErrorMessage(data, `Request failed: ${url}`);
     throw new Error(message);
+  }
+
+  if (data === null) {
+    throw new Error(`Brak poprawnej odpowiedzi JSON: ${url}`);
   }
 
   return data;

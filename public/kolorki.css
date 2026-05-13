@@ -458,6 +458,63 @@ tr:hover td {
   white-space: nowrap;
 }
 
+.btn-score-edit {
+  border: 1px solid #b8d3e8;
+  background: #fff;
+  color: #1c6ea4;
+  border-radius: 4px;
+  font-size: 12px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.btn-score-edit:hover {
+  background: #f0f7ff;
+}
+
+.admin-muted {
+  color: #777;
+  font-size: 13px;
+}
+
+.admin-modal {
+  max-width: 560px;
+}
+
+.admin-scores-modal {
+  max-width: 640px;
+}
+
+.admin-form-grid,
+.admin-score-list {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-form-grid {
+  margin-bottom: 14px;
+}
+
+.admin-match-meta {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.admin-score-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px;
+  gap: 12px;
+  align-items: center;
+}
+
+.admin-score-name {
+  font-weight: bold;
+  color: #2c3e50;
+}
+
 @media (max-width: 600px) {
   .history-tab-btn {
     font-size: 12px;
@@ -467,6 +524,10 @@ tr:hover td {
   .admin-tab-btn {
     font-size: 12px;
     padding: 6px 10px;
+  }
+
+  .admin-score-row {
+    grid-template-columns: 1fr;
   }
 }
 

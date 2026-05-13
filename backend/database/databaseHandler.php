@@ -343,7 +343,7 @@ class DatabaseHandle {
     {
         $sql = "
         SELECT
-            w.id,
+            w.id_gracza AS id,
             w.id_rozgrywki,
             w.id_gracza,
             w.liczba_punktow,
@@ -355,7 +355,7 @@ class DatabaseHandle {
         WHERE g.aktywny = 1
           AND gr.aktywna = 1
           AND w.id_rozgrywki = :rozgrywka_id
-        ORDER BY w.id DESC
+        ORDER BY w.id_gracza DESC
     ";
 
         $stmt = $this->connection->prepare($sql);
@@ -391,9 +391,25 @@ class DatabaseHandle {
 
     public function scoreExists(int $id): bool
     {
-        $sql = "SELECT id FROM wyniki WHERE id = :id LIMIT 1";
+        $sql = "SELECT id_gracza FROM wyniki WHERE id_gracza = :id LIMIT 1";
         $stmt = $this->connection->prepare($sql);
         $stmt->execute(['id' => $id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) !== false;
+    }
+
+    public function matchScoreExists(int $matchId, int $playerId): bool
+    {
+        $sql = "
+            SELECT id_gracza
+            FROM wyniki
+            WHERE id_rozgrywki = :match_id AND id_gracza = :player_id
+            LIMIT 1
+        ";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute([
+            'match_id' => $matchId,
+            'player_id' => $playerId,
+        ]);
         return $stmt->fetch(PDO::FETCH_ASSOC) !== false;
     }
 
@@ -459,12 +475,11 @@ class DatabaseHandle {
     {
         $sql = "
             UPDATE wyniki
-            SET id_rozgrywki = :match_id, id_gracza = :player_id, liczba_punktow = :points
-            WHERE id = :id
+            SET liczba_punktow = :points
+            WHERE id_rozgrywki = :match_id AND id_gracza = :player_id
         ";
         $stmt = $this->connection->prepare($sql);
         $stmt->execute([
-            'id' => $id,
             'match_id' => $matchId,
             'player_id' => $playerId,
             'points' => $points,
@@ -529,7 +544,7 @@ class DatabaseHandle {
 
     public function deleteScore(int $scoreId): bool
     {
-        $sql = "DELETE FROM wyniki WHERE id = :score_id";
+        $sql = "DELETE FROM wyniki WHERE id_gracza = :score_id";
         $stmt = $this->connection->prepare($sql);
         $stmt->execute(['score_id' => $scoreId]);
         return $stmt->rowCount() > 0;

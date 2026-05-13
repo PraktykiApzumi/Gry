@@ -4,7 +4,7 @@ import { attachAutocomplete } from "./js/autocomplete.js";
 import { initModals, openGameModal } from "./modals.js";
 import { initMatchForm } from "./js/matchForm.js";
 import { initHistory } from "./js/history.js";
-import { loadAdminPanel } from "./js/adminPanel.js";
+import { loadAdminPanel, refreshAdminPanel } from "./js/adminPanel.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   const tabButtons = qsa(".tab-btn");
@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
     openGameModal
   });
   initHistory();
-  loadAdminPanel();
+  loadAdminPanel({ openGameModal });
 
   attachAutocomplete(
     statsNameInput,
@@ -49,6 +49,12 @@ document.addEventListener("DOMContentLoaded", () => {
     tabButtons.forEach((button) => {
       button.classList.toggle("active", button.dataset.view === viewId);
     });
+
+    if (viewId === "adminView") {
+      refreshAdminPanel().catch((error) => {
+        alert(error instanceof Error ? error.message : "Nie mozna odswiezyc admin panelu.");
+      });
+    }
   }
 
   async function loadStats() {
