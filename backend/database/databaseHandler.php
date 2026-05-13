@@ -611,4 +611,29 @@ class DatabaseHandle {
 
         return count($results) > 0 ? $totalAveragePoints / count($results) : 0;
     }
+
+    function averagePointDifferencePerGametype():float{
+        $sql = "
+            SELECT 
+                g.rodzaj AS game_type,
+                AVG(w.liczba_punktow) AS average_points
+            FROM gry g
+            JOIN rozgrywki m ON g.id = m.id_gry
+            JOIN wyniki w ON m.id = w.id_rozgrywki
+            WHERE g.aktywna = 1
+            GROUP BY g.rodzaj
+        ";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute();
+        $results = $stmt->fetchAll();
+
+        $totalAveragePoints = 0;
+        foreach ($results as $row) {
+            if ($row['average_points'] !== null) {
+                $totalAveragePoints += $row['average_points'];
+            }
+        }
+
+        return count($results) > 0 ? $totalAveragePoints / count($results) : 0;
+    }
 } 
