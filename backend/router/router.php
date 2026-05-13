@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/../requestHandlers/get.php';
 require_once __DIR__ . '/../requestHandlers/post.php';
+require_once __DIR__ . '/../requestHandlers/put.php';
+require_once __DIR__ . '/../requestHandlers/delete.php';
 
 $routes = require __DIR__ . '/routes.php';
 
