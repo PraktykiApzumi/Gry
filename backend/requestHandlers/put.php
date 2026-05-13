@@ -158,14 +158,17 @@ function putScore($params)
         errorResponse('Bledne dane wejsciowe.', 400, $errors);
     }
 
-    if (!dbHandle()->scoreExists($id)) {
-        errorResponse('Nie znaleziono wyniku.', 404);
-    }
     if (!dbHandle()->matchExists((int) $data['matchId'])) {
         errorResponse('Nie znaleziono rozgrywki.', 404, ['matchId' => 'Brak rozgrywki o podanym ID.']);
     }
     if (!dbHandle()->playerExists((int) $data['playerId'])) {
         errorResponse('Nie znaleziono gracza.', 404, ['playerId' => 'Brak gracza o podanym ID.']);
+    }
+    if ((int) $id !== (int) $data['playerId']) {
+        errorResponse('Nieprawidlowy identyfikator wyniku.', 400, ['playerId' => 'ID w URL musi byc takie samo jak playerId.']);
+    }
+    if (!dbHandle()->matchScoreExists((int) $data['matchId'], (int) $data['playerId'])) {
+        errorResponse('Nie znaleziono wyniku dla podanej rozgrywki i gracza.', 404);
     }
 
     dbHandle()->updateScore(
