@@ -11,6 +11,22 @@ let modalId = 0;
 let activeMatchId = 0;
 let openGameModalRef = null;
 
+function showToast(message, variant = "success") {
+  const existing = document.querySelector(".inline-toast");
+  if (existing) existing.remove();
+
+  const toast = document.createElement("div");
+  toast.className = `inline-toast is-${variant}`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+
+  requestAnimationFrame(() => toast.classList.add("is-visible"));
+  setTimeout(() => {
+    toast.classList.remove("is-visible");
+    setTimeout(() => toast.remove(), 250);
+  }, 2600);
+}
+
 function emptyRow(cols, text) {
   return `<tr><td colspan="${cols}" class="admin-empty">${text}</td></tr>`;
 }
@@ -127,7 +143,12 @@ function closeEntityModal() {
 function openPlayerModal(player) {
   openEntityModal(
     player ? "Modyfikuj gracza" : "Dodaj gracza",
-    `<input type="text" name="name" placeholder="Nick gracza..." value="${player ? player.nick : ""}" required />`,
+    `
+      <div class="admin-form-field">
+        <label class="field-label" for="adminPlayerName">Nick gracza</label>
+        <input type="text" id="adminPlayerName" name="name" placeholder="Nick gracza..." value="${player ? player.nick : ""}" required />
+      </div>
+    `,
     "player",
     player ? player.id : 0
   );
@@ -137,9 +158,18 @@ function openMatchModal(match) {
   openEntityModal(
     "Modyfikuj rozgrywke",
     `
-      <input type="text" name="gameName" placeholder="Nazwa gry..." value="${match.game_name}" required />
-      <input type="text" name="winnerName" placeholder="Nick zwyciezcy..." value="${match.winner_nick}" required />
-      <input type="number" name="playerCount" min="1" max="20" placeholder="Liczba graczy" value="${match.ilosc_graczy}" required />
+      <div class="admin-form-field">
+        <label class="field-label" for="adminMatchGameName">Nazwa gry</label>
+        <input type="text" id="adminMatchGameName" name="gameName" placeholder="Nazwa gry..." value="${match.game_name}" required />
+      </div>
+      <div class="admin-form-field">
+        <label class="field-label" for="adminMatchWinnerName">Nick zwycięzcy</label>
+        <input type="text" id="adminMatchWinnerName" name="winnerName" placeholder="Nick zwyciezcy..." value="${match.winner_nick}" required />
+      </div>
+      <div class="admin-form-field">
+        <label class="field-label" for="adminMatchPlayerCount">Liczba graczy</label>
+        <input type="number" id="adminMatchPlayerCount" name="playerCount" min="1" max="20" placeholder="Liczba graczy" value="${match.ilosc_graczy}" required />
+      </div>
     `,
     "match",
     match.id
@@ -176,8 +206,9 @@ async function saveEntityModal(event) {
 
     closeEntityModal();
     await refreshAdminPanel();
+    showToast("Zapisano zmiany.");
   } catch (error) {
-    alert(error instanceof Error ? error.message : "Nie udalo sie zapisac danych.");
+    showToast(error instanceof Error ? error.message : "Nie udalo sie zapisac danych.", "error");
   }
 }
 
@@ -239,8 +270,9 @@ async function saveScores(event) {
 
     closeScoresModal();
     await refreshAdminPanel();
+    showToast("Zapisano wyniki.");
   } catch (error) {
-    alert(error instanceof Error ? error.message : "Nie udalo sie zapisac wynikow.");
+    showToast(error instanceof Error ? error.message : "Nie udalo sie zapisac wynikow.", "error");
   }
 }
 
@@ -248,6 +280,7 @@ async function removeRecord(type, id) {
   if (!window.confirm("Czy na pewno chcesz usunac ten rekord?")) return;
   await deleteRequest(`api/${type}/${id}`);
   await refreshAdminPanel();
+  showToast("Usunięto rekord.");
 }
 
 function openAddMatchView() {

@@ -6,10 +6,49 @@ const gameModalState = {
   onSaved: null
 };
 
+function getErrorEl(modalEl, fieldName) {
+  return modalEl.querySelector(`[data-error-for="${fieldName}"]`);
+}
+
+function setFieldError(fieldEl, errorEl, message = "") {
+  if (fieldEl) {
+    fieldEl.classList.toggle("field-input-error", Boolean(message));
+    fieldEl.setAttribute("aria-invalid", message ? "true" : "false");
+  }
+  if (errorEl) {
+    errorEl.textContent = message;
+  }
+}
+
+function clearFieldError(modalEl, fieldName) {
+  const fieldEl = modalEl.querySelector(`[name="${fieldName}"]`);
+  setFieldError(fieldEl, getErrorEl(modalEl, fieldName), "");
+}
+
+function showToast(message, variant = "success") {
+  const existing = document.querySelector(".inline-toast");
+  if (existing) existing.remove();
+
+  const toast = document.createElement("div");
+  toast.className = `inline-toast is-${variant}`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+
+  requestAnimationFrame(() => toast.classList.add("is-visible"));
+  setTimeout(() => {
+    toast.classList.remove("is-visible");
+    setTimeout(() => toast.remove(), 250);
+  }, 2600);
+}
+
 function clearModalFields(modalEl) {
   modalEl.querySelectorAll("input, select").forEach((el) => {
     el.value = "";
-    el.style.borderColor = "";
+    el.classList.remove("field-input-error");
+    el.setAttribute("aria-invalid", "false");
+  });
+  modalEl.querySelectorAll(".field-error").forEach((el) => {
+    el.textContent = "";
   });
 }
 
@@ -32,10 +71,10 @@ export function openGameModal(config = "") {
   gameModalState.onSaved = game.onSaved || null;
 
   if (game.mode === "edit") {
-    if (titleEl) titleEl.textContent = "Modyfikuj gre";
+    if (titleEl) titleEl.textContent = "Modyfikuj grę";
     fillGameModal(modalEl, game);
   } else {
-    if (titleEl) titleEl.textContent = "Dodaj nowa gre";
+    if (titleEl) titleEl.textContent = "Dodaj nową grę";
     fillGameModal(modalEl, game);
   }
 
@@ -65,6 +104,11 @@ export function initModals() {
 
   closeBtn.addEventListener("click", () => closeGameModal());
 
+  modalEl.querySelectorAll("input, select").forEach((field) => {
+    field.addEventListener("input", () => clearFieldError(modalEl, field.name));
+    field.addEventListener("change", () => clearFieldError(modalEl, field.name));
+  });
+
   saveBtn.addEventListener("click", async () => {
     const nameEl = modalEl.querySelector('[name="name"]');
     const typeEl = modalEl.querySelector('[name="type"]');
@@ -72,36 +116,52 @@ export function initModals() {
     const maxPlayersEl = modalEl.querySelector('[name="maxPlayers"]');
     const winTypeEl = modalEl.querySelector('[name="winType"]');
 
-    if (!nameEl.value.trim()) {
-      nameEl.style.borderColor = "red";
-      return;
-    }
-
+    const name = nameEl.value.trim();
+    const type = typeEl.value.trim();
     const minPlayers = Number(minPlayersEl?.value);
     const maxPlayers = Number(maxPlayersEl?.value);
-    if (
-      !Number.isInteger(minPlayers) ||
-      !Number.isInteger(maxPlayers) ||
-      minPlayers < 1 ||
-      maxPlayers < 1 ||
-      minPlayers > maxPlayers
-    ) {
-      minPlayersEl.style.borderColor = "red";
-      maxPlayersEl.style.borderColor = "red";
-      alert("Liczba graczy jest niepoprawna: min musi byc mniejsze lub rowne max.");
-      return;
+    const winType = winTypeEl.value;
+
+    let hasErrors = false;
+
+    if (name.length < 2 || name.length > 100) {
+      setFieldError(nameEl, getErrorEl(modalEl, "name"), "Podaj nazwę gry od 2 do 100 znaków.");
+      hasErrors = true;
     }
 
-    minPlayersEl.style.borderColor = "";
-    maxPlayersEl.style.borderColor = "";
+    if (!type) {
+      setFieldError(typeEl, getErrorEl(modalEl, "type"), "Wybierz typ gry.");
+      hasErrors = true;
+    }
+
+    if (!Number.isInteger(minPlayers) || minPlayers < 1) {
+      setFieldError(minPlayersEl, getErrorEl(modalEl, "minPlayers"), "Podaj poprawną minimalną liczbę graczy.");
+      hasErrors = true;
+    }
+
+    if (!Number.isInteger(maxPlayers) || maxPlayers < 1) {
+      setFieldError(maxPlayersEl, getErrorEl(modalEl, "maxPlayers"), "Podaj poprawną maksymalną liczbę graczy.");
+      hasErrors = true;
+    } else if (Number.isInteger(minPlayers) && minPlayers > maxPlayers) {
+      setFieldError(minPlayersEl, getErrorEl(modalEl, "minPlayers"), "Minimum nie może być większe od maksimum.");
+      setFieldError(maxPlayersEl, getErrorEl(modalEl, "maxPlayers"), "Maksimum nie może być mniejsze od minimum.");
+      hasErrors = true;
+    }
+
+    if (!winType) {
+      setFieldError(winTypeEl, getErrorEl(modalEl, "winType"), "Wybierz rodzaj wygranej.");
+      hasErrors = true;
+    }
+
+    if (hasErrors) return;
 
     try {
       const payload = {
-        name: nameEl.value.trim(),
-        type: typeEl.value.trim(),
+        name,
+        type,
         maxPlayers,
         minPlayers,
-        winType: winTypeEl.value
+        winType
       };
 
       const data = gameModalState.mode === "edit" && gameModalState.gameId
@@ -131,9 +191,10 @@ export function initModals() {
         await gameModalState.onSaved(payload);
       }
 
+      showToast(gameModalState.mode === "edit" ? "Zapisano zmiany gry." : "Dodano nową grę.");
       closeGameModal();
-    } catch {
-      nameEl.style.borderColor = "red";
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Nie udało się zapisać gry.", "error");
     }
   });
 }
