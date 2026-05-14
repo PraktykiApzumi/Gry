@@ -550,7 +550,7 @@ class DatabaseHandle {
         return $stmt->rowCount() > 0;
     }
 
-    function averagePointDifferencePerGame(): array {
+    function averagePointDifferencePerGame(string $gameName): array {
     $sql = "
         SELECT 
             g.id AS game_id,
@@ -561,11 +561,12 @@ class DatabaseHandle {
         JOIN rozgrywki m ON g.id = m.id_gry
         JOIN wyniki w ON m.id = w.id_rozgrywki
         WHERE g.aktywna = 1
+            AND g.nazwa = :game_name
         GROUP BY g.id, g.nazwa, w.id_gracza
         ORDER BY g.nazwa, w.id_gracza
     ";
     $stmt = $this->connection->prepare($sql);
-    $stmt->execute();
+    $stmt->execute(['game_name' => $gameName]);
     return $stmt->fetchAll();
   }
 
