@@ -78,15 +78,20 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
-        tableBody.innerHTML = rows.map((row) => `
+        tableBody.innerHTML = rows.map((row) => {
+          const avg = Array.isArray(row.averagePoints)
+            ? (row.averagePoints.find((a) => a.player_id == row.id)?.average_points ?? "—")
+            : "—";
+          return `
           <tr>
             <td>${row.nick}</td>
             <td>${gameName}</td>
             <td>${row.total_points ?? 0}</td>
+            <td>${typeof avg === "number" ? avg.toFixed(1) : avg}</td>
             <td>${row.wins ?? 0}</td>
             <td>${row.played_games ?? 0}</td>
-          </tr>
-        `).join("");
+          </tr>`;
+        }).join("");
     } catch (err) {
       if (err instanceof Error && err.message) {
         alert(err.message);
