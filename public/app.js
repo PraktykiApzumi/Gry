@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const matchForm = qs("#matchForm");
   const gameNameInput = qs("#gameName");
   const maxPlayersInput = qs("#maxPlayers");
+  const maxPlayersLabel = qs("#maxPlayersLabel");
   const playersLabel = qs("#playersLabel");
   const statsForm = qs("#statsForm");
   const statsNameInput = qs("#statsName");
@@ -25,6 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
     matchForm,
     gameNameInput,
     maxPlayersInput,
+    maxPlayersLabel,
     playersLabel,
     playersContainer,
     openGameModal
