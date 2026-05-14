@@ -6,36 +6,50 @@ require_once __DIR__ . '/helpers/validation.php';
 function getStatsWins($params)
 {
     $gameName = validateRouteNameParam($params);
-
+    $leaderboard = dbHandle()->getWinSortedLeaderboard($gameName);
+    $averagePoints = dbHandle()->averagePointDifferencePerGame($gameName);
+    foreach ($leaderboard as &$player) {
+        $player['averagePoints'] = $averagePoints;
+    }
     jsonResponse([
         'ok' => true,
         'gameName' => $gameName,
         'filter' => 'wins',
-        'data' => dbHandle()->getWinSortedLeaderboard($gameName),
-    ]);
-}
-
-function getStatsPoints($params)
-{
-    $gameName = validateRouteNameParam($params);
-
-    jsonResponse([
-        'ok' => true,
-        'gameName' => $gameName,
-        'filter' => 'points',
-        'data' => dbHandle()->getPointsSortedLeaderboard($gameName),
+        'data' => $leaderboard,
     ]);
 }
 
 function getStatsPlayed($params)
 {
     $gameName = validateRouteNameParam($params);
-
+    $leaderboard = dbHandle()->getPlayedSortedLeaderboard($gameName);
+    $averagePoints = dbHandle()->averagePointDifferencePerGame($gameName);
+    foreach ($leaderboard as &$player) {
+        $player['averagePoints'] = $averagePoints;
+    }
     jsonResponse([
         'ok' => true,
         'gameName' => $gameName,
         'filter' => 'played',
-        'data' => dbHandle()->getPlayedSortedLeaderboard($gameName),
+        'data' => $leaderboard,
+    ]);
+}
+function getStatsPoints($params)
+{
+    $gameName = validateRouteNameParam($params);
+
+    $leaderboard = dbHandle()->getPointsSortedLeaderboard($gameName);
+    $averagePoints = dbHandle()->averagePointDifferencePerGame($gameName);
+
+    foreach ($leaderboard as &$player) {
+        $player['averagePoints'] = $averagePoints;
+    }
+
+    jsonResponse([
+        'ok' => true,
+        'gameName' => $gameName,
+        'filter' => 'points',
+        'data' => $leaderboard,
     ]);
 }
 
