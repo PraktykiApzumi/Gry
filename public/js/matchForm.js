@@ -21,6 +21,7 @@ function validateMatchPayload(payload) {
     } else if (!containsLetter(player.name)) {
       errors.push(`Gracz ${index + 1}: nazwa musi zawierac litery, nie same cyfry.`);
     }
+
     if (!Number.isInteger(player.points) || player.points < 0) {
       errors.push(`Gracz ${index + 1}: punkty musza byc liczba calkowita >= 0.`);
     }
@@ -29,10 +30,51 @@ function validateMatchPayload(payload) {
   return errors;
 }
 
+function showToast(message, variant = "success") {
+  const existing = document.querySelector(".inline-toast");
+  if (existing) existing.remove();
+
+  const toast = document.createElement("div");
+  toast.className = `inline-toast is-${variant}`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+
+  requestAnimationFrame(() => toast.classList.add("is-visible"));
+  setTimeout(() => {
+    toast.classList.remove("is-visible");
+    setTimeout(() => toast.remove(), 250);
+  }, 2600);
+}
+
+function getErrorEl(input) {
+  const nextEl = input.nextElementSibling;
+  return nextEl && nextEl.classList.contains("field-error") ? nextEl : null;
+}
+
+function setFieldError(input, message = "") {
+  if (!input) return;
+  input.classList.toggle("field-input-error", Boolean(message));
+  input.setAttribute("aria-invalid", message ? "true" : "false");
+  const errorEl = getErrorEl(input);
+  if (errorEl) errorEl.textContent = message;
+}
+
+function clearFieldError(input) {
+  setFieldError(input, "");
+}
+
+function getPlayerValues(playersContainer) {
+  return Array.from(playersContainer.querySelectorAll(".player-card")).map((card) => ({
+    name: card.querySelector(".player-name")?.value ?? "",
+    points: card.querySelector(".player-points")?.value ?? ""
+  }));
+}
+
 export function initMatchForm({
   matchForm,
   gameNameInput,
   maxPlayersInput,
+  maxPlayersLabel,
   playersLabel,
   playersContainer,
   openGameModal
@@ -43,14 +85,27 @@ export function initMatchForm({
 
   let gameConstraintsRequestId = 0;
   let hasResolvedGameConstraints = false;
+  let savedPlayers = [];
+
+  function saveVisiblePlayers() {
+    const visiblePlayers = getPlayerValues(playersContainer);
+    visiblePlayers.forEach((player, index) => {
+      savedPlayers[index] = player;
+    });
+  }
 
   function toggleMatchPlayersFields(visible) {
     maxPlayersInput.style.display = visible ? "block" : "none";
+    if (maxPlayersLabel) {
+      maxPlayersLabel.style.display = visible ? "block" : "none";
+    }
     if (playersLabel) {
       playersLabel.style.display = visible ? "block" : "none";
     }
     if (!visible) {
+      saveVisiblePlayers();
       playersContainer.innerHTML = "";
+      clearFieldError(maxPlayersInput);
     }
   }
 
@@ -66,14 +121,14 @@ export function initMatchForm({
         onEmptySelect: async (playerName) => {
           const trimmedName = playerName.trim();
           if (!trimmedName) return;
-          playerNameInput.style.borderColor = "";
+          clearFieldError(playerNameInput);
           try {
             const created = await postJson("api/player", { name: trimmedName });
-            console.log("[gracz zapisany — backend]", created);
             playerNameInput.value = trimmedName;
+            showToast(`Dodano gracza "${trimmedName}".`);
           } catch (err) {
-            playerNameInput.style.borderColor = "red";
-            console.warn("[api/player]", err instanceof Error ? err.message : err);
+            setFieldError(playerNameInput, "Nie udało się dodać tego gracza.");
+            showToast("Nie udało się dodać gracza.", "error");
           }
         }
       }
@@ -94,17 +149,25 @@ export function initMatchForm({
       maxPlayersInput.value = String(safeCount);
     }
 
+    saveVisiblePlayers();
     playersContainer.innerHTML = "";
+
     for (let i = 0; i < safeCount; i++) {
+      const player = savedPlayers[i] || {};
       const card = document.createElement("div");
       card.className = "player-card";
       card.innerHTML = `
         <div class="field-label">Gracz ${i + 1}</div>
-        <input type="text" class="player-name" placeholder="Nazwa gracza" required>
-        <input type="number" class="player-points" placeholder="Punkty" min="0" required>
+        <input type="text" class="player-name" placeholder="Nazwa gracza" value="${player.name || ""}" required>
+        <div class="field-error" aria-live="polite"></div>
+        <input type="number" class="player-points" placeholder="Punkty" min="0" value="${player.points || ""}" required>
+        <div class="field-error" aria-live="polite"></div>
       `;
 
       attachPlayerAutocomplete(card);
+      card.querySelectorAll("input").forEach((input) => {
+        input.addEventListener("input", () => clearFieldError(input));
+      });
       playersContainer.appendChild(card);
     }
   }
@@ -115,11 +178,14 @@ export function initMatchForm({
     maxPlayersInput.placeholder = `Liczba graczy (${minPlayers}-${maxPlayers})`;
     maxPlayersInput.value = "";
     hasResolvedGameConstraints = true;
+    clearFieldError(gameNameInput);
     toggleMatchPlayersFields(true);
     renderPlayers();
   }
 
   function clearMaxPlayersRange() {
+    saveVisiblePlayers();
+    savedPlayers = [];
     maxPlayersInput.min = String(defaultMaxPlayersMin);
     maxPlayersInput.max = String(defaultMaxPlayersMax);
     maxPlayersInput.placeholder = "Liczba graczy";
@@ -180,14 +246,21 @@ export function initMatchForm({
   );
 
   clearMaxPlayersRange();
+
   gameNameInput.addEventListener("blur", () => {
     syncGamePlayerConstraints(gameNameInput.value);
   });
+
   gameNameInput.addEventListener("input", () => {
+    clearFieldError(gameNameInput);
     hasResolvedGameConstraints = false;
     toggleMatchPlayersFields(false);
   });
-  maxPlayersInput.addEventListener("input", renderPlayers);
+
+  maxPlayersInput.addEventListener("input", () => {
+    clearFieldError(maxPlayersInput);
+    renderPlayers();
+  });
 
   window.addEventListener("game-created", (event) => {
     const detail = event?.detail ?? {};
@@ -198,6 +271,7 @@ export function initMatchForm({
     if (!gameName) return;
 
     gameNameInput.value = gameName;
+    savedPlayers = [];
     if (
       Number.isInteger(minPlayers) &&
       Number.isInteger(maxPlayers) &&
@@ -214,35 +288,66 @@ export function initMatchForm({
   matchForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const gameName = gameNameInput.value.trim();
+
     if (!hasResolvedGameConstraints) {
       await syncGamePlayerConstraints(gameName);
     }
+
     if (!hasResolvedGameConstraints) {
-      alert("Najpierw wybierz poprawna gre z bazy, aby ustawic liczbe graczy.");
+      setFieldError(gameNameInput, "Wybierz istniejącą grę z bazy albo dodaj ją najpierw.");
       return;
     }
 
     const players = Array.from(playersContainer.querySelectorAll(".player-card")).map((card) => ({
+      nameInput: card.querySelector(".player-name"),
+      pointsInput: card.querySelector(".player-points"),
       name: card.querySelector(".player-name").value.trim(),
       points: toInt(card.querySelector(".player-points").value)
     }));
+    saveVisiblePlayers();
 
-    const matchPayload = { gameName, players };
+    const matchPayload = {
+      gameName,
+      players: players.map(({ name, points }) => ({ name, points }))
+    };
+
     const validationErrors = validateMatchPayload(matchPayload);
     if (validationErrors.length > 0) {
-      alert(validationErrors.join("\n"));
+      if (gameName.length < 2 || gameName.length > 100) {
+        setFieldError(gameNameInput, "Nazwa gry musi mieć od 2 do 100 znaków.");
+      }
+
+      players.forEach((player, index) => {
+        clearFieldError(player.nameInput);
+        clearFieldError(player.pointsInput);
+
+        if (player.name.length < 2 || player.name.length > 100) {
+          setFieldError(player.nameInput, `Gracz ${index + 1}: nazwa musi mieć od 2 do 100 znaków.`);
+        } else if (!/[a-zA-Z]/.test(player.name)) {
+          setFieldError(player.nameInput, `Gracz ${index + 1}: nazwa musi zawierać litery.`);
+        }
+
+        if (!Number.isInteger(player.points) || player.points < 0) {
+          setFieldError(player.pointsInput, `Gracz ${index + 1}: podaj liczbę punktów 0 lub większą.`);
+        }
+      });
       return;
     }
 
     try {
       const matchRes = await postJson("api/match", matchPayload);
-      console.log("[mecz zapisany — backend]", matchRes);
+      console.log("[mecz zapisany - backend]", matchRes);
+
+      gameNameInput.value = "";
+      clearMaxPlayersRange();
+
+      showToast("Dodano rozgrywkę do bazy.");
     } catch (err) {
       if (err instanceof Error && err.message) {
-        alert(err.message);
+        showToast(err.message, "error");
         return;
       }
-      alert("Nie mozna teraz wyslac danych.");
+      showToast("Nie można teraz wysłać danych.", "error");
     }
   });
 }

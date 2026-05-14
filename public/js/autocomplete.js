@@ -7,6 +7,10 @@ function normalizeSuggestions(raw) {
     .filter((item) => item.length > 0);
 }
 
+function normalizeValue(value) {
+  return String(value || "").trim().toLocaleLowerCase();
+}
+
 export function attachAutocomplete(inputEl, endpointBuilder, options = {}) {
   const {
     label = "autocomplete",
@@ -45,6 +49,8 @@ export function attachAutocomplete(inputEl, endpointBuilder, options = {}) {
 
   function renderSuggestions(items, query) {
     listEl.innerHTML = "";
+    const normalizedQuery = normalizeValue(query);
+    const hasExactMatch = items.some((item) => normalizeValue(item) === normalizedQuery);
 
     items.forEach((item) => {
       const row = document.createElement("button");
@@ -62,7 +68,11 @@ export function attachAutocomplete(inputEl, endpointBuilder, options = {}) {
       listEl.appendChild(row);
     });
 
-    if (!items.length && emptyLabel && typeof onEmptySelect === "function") {
+    if (
+      normalizedQuery.length >= 2 &&
+      !hasExactMatch &&
+      emptyLabel 
+    ) {
       const addRow = document.createElement("button");
       addRow.type = "button";
       addRow.className = "autocomplete-item autocomplete-item-add";

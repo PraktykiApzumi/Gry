@@ -11,7 +11,8 @@
   <div class="tabs">
     <button type="button" class="tab-btn active" data-view="addView">Dodaj rozgrywkę</button>
     <button type="button" class="tab-btn" data-view="statsView">Statystyki</button>
-    <button type="button" class="tab-btn" data-view="historyView">Historia</button>
+    <button type="button" class="tab-btn" data-view="historyView">Historia</button> 
+    <button type="button" class="tab-btn" data-view="adminView">Admin panel</button>
   </div>
   <hr>
 
@@ -20,11 +21,14 @@
     <h2>Dodaj rozgrywkę</h2>
     <form id="matchForm" class="game-box">
       <div class="label-row">
-        <p>Gra:</p>
+        <label for="gameName" class="field-label">Gra</label>
       </div>
       <input id="gameName" type="text" name="game_name" placeholder="Nazwa gry..." required/>
+      <div class="field-error" id="gameNameError" aria-live="polite"></div>
+      <label for="maxPlayers" id="maxPlayersLabel" class="field-label" style="display:none;">Liczba graczy</label>
       <input id="maxPlayers" type="number" name="max_players" placeholder="Maksymalna liczba graczy" min="1" max="10" value="3" style="display:none;"/>
-      <p id="playersLabel" style="display:none;">Gracze:</p>
+      <div class="field-error" id="maxPlayersError" aria-live="polite"></div>
+      <p id="playersLabel" class="field-label" style="display:none;">Gracze:</p>
       <div class="players-row" id="playersRow"></div>
       <button type="submit" class="btn-dodaj">Dodaj rozgrywkę</button>
     </form>
@@ -65,17 +69,18 @@
   <!-- WIDOK: Historia -->
   <div id="historyView" class="view">
     <h2>Historia rozgrywek</h2>
-
+  
     <div class="history-tabs">
       <button type="button" class="history-tab-btn active" data-history="recent">Ostatnie rozgrywki</button>
       <button type="button" class="history-tab-btn" data-history="game">Wg gry</button>
       <button type="button" class="history-tab-btn" data-history="player">Wg gracza</button>
     </div>
-
+  
     <!-- Ostatnie rozgrywki -->
     <div id="historyRecent" class="history-panel active">
       <div style="margin: 12px 0;">
-        <button type="button" class="btn-dodaj" id="loadRecentBtn" style="width:auto; padding: 9px 24px;">Załaduj ostatnie rozgrywki</button>
+        <button type="button" class="btn-dodaj" id="loadRecentBtn" style="width:auto; padding: 9px 24px;">Załaduj ostatnie
+          rozgrywki</button>
       </div>
       <div class="table-wrapper">
         <table>
@@ -88,11 +93,14 @@
             </tr>
           </thead>
           <tbody id="recentHistoryBody">
-            <tr><td colspan="4" style="text-align:center; color:#999;">Kliknij „Załaduj" aby pobrać dane</td></tr>
+            <tr>
+              <td colspan="4" style="text-align:center; color:#999;">Kliknij „Załaduj" aby pobrać dane</td>
+            </tr>
           </tbody>
         </table>
       </div>
     </div>
+  
 
     <!-- Historia wg gry -->
     <div id="historyGame" class="history-panel">
@@ -140,25 +148,137 @@
       </div>
     </div>
   </div>
+  <div id="adminView" class="view">
+    <h2>Admin panel</h2>
 
+    <div class="admin-tabs">
+      <button type="button" class="admin-tab-btn active" data-admin-panel="players">Gracze</button>
+      <button type="button" class="admin-tab-btn" data-admin-panel="games">Gry</button>
+      <button type="button" class="admin-tab-btn" data-admin-panel="matches">Rozgrywki</button>
+    </div>
+
+    <div id="adminPlayersPanel" class="admin-panel active" data-admin-panel="players">
+      <div class="admin-toolbar">
+        <button type="button" class="btn-dodaj" id="addPlayerBtn">Dodaj gracza</button>
+      </div>
+      <div class="table-wrapper admin-table-wrapper">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nick</th>
+              <th>Akcje</th>
+            </tr>
+          </thead>
+          <tbody id="adminPlayersBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="adminGamesPanel" class="admin-panel" data-admin-panel="games">
+      <div class="admin-toolbar">
+        <button type="button" class="btn-dodaj" id="addGameBtn">Dodaj gre</button>
+      </div>
+      <div class="table-wrapper admin-table-wrapper">
+        <table class="admin-table admin-games-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nazwa</th>
+              <th>Rodzaj</th>
+              <th>Min</th>
+              <th>Max</th>
+              <th>Wygrana</th>
+              <th>Akcje</th>
+            </tr>
+          </thead>
+          <tbody id="adminGamesBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="adminMatchesPanel" class="admin-panel" data-admin-panel="matches">
+      <div class="admin-toolbar">
+        <button type="button" class="btn-dodaj" id="addMatchBtn">Dodaj rozgrywke</button>
+      </div>
+      <div class="table-wrapper admin-table-wrapper">
+        <table class="admin-table admin-matches-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Data</th>
+              <th>Gra</th>
+              <th>Zwyciezca</th>
+              <th>Graczy</th>
+              <th>Wyniki</th>
+              <th>Akcje</th>
+            </tr>
+          </thead>
+          <tbody id="adminMatchesBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
   <!-- MODAL: Dodaj grę -->
   <div id="gameModal" class="modal-overlay" style="display:none;">
     <div class="modal">
       <h3>Dodaj nową grę</h3>
+      <label for="game_name" class="field-label">Nazwa gry</label>
       <input type="text" id="game_name" name="name" placeholder="Nazwa gry..." />
-      <input type="text" id="game_type" name="type" placeholder="Rodzaj (np. karciana, strategiczna...)" />
-      <input type="number" id="game_maxPlayers" name="maxPlayers" placeholder="Maks. graczy" min="1" max="20" />
+      <div class="field-error" data-error-for="name" aria-live="polite"></div>
+      <label for="game_type" class="field-label">Typ gry</label>
+      <select id="game_type" name="type">
+        <option value="">Wybierz typ gry...</option>
+        <option value="planszowa">Planszowa</option>
+        <option value="karciana">Karciana</option>
+        <option value="komputerowa">Komputerowa</option>
+      </select>
+      <div class="field-error" data-error-for="type" aria-live="polite"></div>
+      <label for="game_minPlayers" class="field-label">Minimalna liczba graczy</label>
       <input type="number" id="game_minPlayers" name="minPlayers" placeholder="Min. graczy" min="1" max="20" />
+      <div class="field-error" data-error-for="minPlayers" aria-live="polite"></div>
+      <label for="game_maxPlayers" class="field-label">Maksymalna liczba graczy</label>
+      <input type="number" id="game_maxPlayers" name="maxPlayers" placeholder="Maks. graczy" min="1" max="20" />
+      <div class="field-error" data-error-for="maxPlayers" aria-live="polite"></div>
+      <label for="game_winType" class="field-label">Rodzaj wygranej</label>
       <select id="game_winType" name="winType">
         <option value="">Rodzaj wygranej...</option>
         <option value="punktowa">Punktowa</option>
         <option value="punktowa-malejaca">Punktowa malejąca</option>
         <option value="inna">Inna</option>
       </select>
+      <div class="field-error" data-error-for="winType" aria-live="polite"></div>
       <div class="modal-buttons">
         <button type="button" class="btn-dodaj" id="saveGameBtn">Zapisz</button>
         <button type="button" class="btn-anuluj" id="closeGameModal">Anuluj</button>
       </div>
+    </div>
+  </div>
+
+  <div id="adminEntityModal" class="modal-overlay" style="display:none;">
+    <div class="modal admin-modal">
+      <h3 id="adminEntityModalTitle">Edycja</h3>
+      <form id="adminEntityForm">
+        <div id="adminEntityFields" class="admin-form-grid"></div>
+        <div class="modal-buttons">
+          <button type="submit" class="btn-dodaj" id="adminEntitySaveBtn">Zapisz</button>
+          <button type="button" class="btn-anuluj" id="adminEntityCloseBtn">Anuluj</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="adminScoresModal" class="modal-overlay" style="display:none;">
+    <div class="modal admin-modal admin-scores-modal">
+      <h3 id="adminScoresModalTitle">Wyniki rozgrywki</h3>
+      <form id="adminScoresForm">
+        <div id="adminScoresMeta" class="admin-match-meta"></div>
+        <div id="adminScoresFields" class="admin-score-list"></div>
+        <div class="modal-buttons">
+          <button type="submit" class="btn-dodaj" id="adminScoresSaveBtn">Zapisz wyniki</button>
+          <button type="button" class="btn-anuluj" id="adminScoresCloseBtn">Anuluj</button>
+        </div>
+      </form>
     </div>
   </div>
 
