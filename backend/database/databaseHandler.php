@@ -534,108 +534,41 @@ class DatabaseHandle {
         $stmt->execute(['score_id' => $scoreId]);
         return $stmt->rowCount() > 0;
     }
-    public function winPercentagePerGame():float
-    {
-        $sql = "
-            SELECT 
-                g.id AS game_id,
-                g.nazwa AS game_name,
-                COUNT(m.id) AS total_matches,
-                SUM(CASE WHEN m.id_zwyciezcy IS NOT NULL THEN 1 ELSE 0 END) AS wins
-            FROM gry g
-            LEFT JOIN rozgrywki m ON g.id = m.id_gry
-            join wyniki w ON m.id = w.id_rozgrywki
-            WHERE g.aktywna = 1
-            GROUP BY g.id, g.nazwa,w.id_gracza
-        ";
-        $stmt = $this->connection->prepare($sql);
-        $stmt->execute();
-        $results = $stmt->fetchAll();
+   
+    function averagePointDifferencePerGame(): array {
+    $sql = "
+        SELECT 
+            g.id AS game_id,
+            g.nazwa AS game_name,
+            w.id_gracza AS player_id,
+            AVG(w.liczba_punktow) AS average_points
+        FROM gry g
+        JOIN rozgrywki m ON g.id = m.id_gry
+        JOIN wyniki w ON m.id = w.id_rozgrywki
+        WHERE g.aktywna = 1
+        GROUP BY g.id, g.nazwa, w.id_gracza
+        ORDER BY g.nazwa, w.id_gracza
+    ";
+    $stmt = $this->connection->prepare($sql);
+    $stmt->execute();
+    return $stmt->fetchAll();
+}
 
-        $totalWinPercentage = 0;
-        foreach ($results as $row) {
-            if ($row['total_matches'] > 0) {
-                $winPercentage = ($row['wins'] / $row['total_matches']) * 100;
-                $totalWinPercentage += $winPercentage;
-            }
-        }
-
-        return count($results) > 0 ? $totalWinPercentage / count($results) : 0;
-    }
-    function winPercentagePerGametype():float{
-        $sql = "
-            SELECT 
-                g.rodzaj AS game_type,
-                COUNT(m.id) AS total_matches,
-                SUM(CASE WHEN m.id_zwyciezcy IS NOT NULL THEN 1 ELSE 0 END) AS wins
-            FROM gry g
-            LEFT JOIN rozgrywki m ON g.id = m.id_gry
-            JOIN wyniki w ON m.id = w.id_rozgrywki
-            WHERE g.aktywna = 1
-            GROUP BY g.rodzaj, w.id_gracza
-        ";
-        $stmt = $this->connection->prepare($sql);
-        $stmt->execute();
-        $results = $stmt->fetchAll();
-
-        $totalWinPercentage = 0;
-        foreach ($results as $row) {
-            if ($row['total_matches'] > 0) {
-                $winPercentage = ($row['wins'] / $row['total_matches']) * 100;
-                $totalWinPercentage += $winPercentage;
-            }
-        }
-
-        return count($results) > 0 ? $totalWinPercentage / count($results) : 0;
-    }
-    function averagePointDifferencePerGame():float{
-        $sql = "
-            SELECT 
-                g.id AS game_id,
-                g.nazwa AS game_name,
-                AVG(w.liczba_punktow) AS average_points
-            FROM gry g
-            JOIN rozgrywki m ON g.id = m.id_gry
-            JOIN wyniki w ON m.id = w.id_rozgrywki
-            WHERE g.aktywna = 1
-            GROUP BY g.id, g.nazwa, w.id_gracza
-        ";
-        $stmt = $this->connection->prepare($sql);
-        $stmt->execute();
-        $results = $stmt->fetchAll();
-
-        $totalAveragePoints = 0;
-        foreach ($results as $row) {
-            if ($row['average_points'] !== null) {
-                $totalAveragePoints += $row['average_points'];
-            }
-        }
-
-        return count($results) > 0 ? $totalAveragePoints / count($results) : 0;
-    }
-
-    function averagePointDifferencePerGametype():float{
-        $sql = "
-            SELECT 
-                g.rodzaj AS game_type,
-                AVG(w.liczba_punktow) AS average_points
-            FROM gry g
-            JOIN rozgrywki m ON g.id = m.id_gry
-            JOIN wyniki w ON m.id = w.id_rozgrywki
-            WHERE g.aktywna = 1
-            GROUP BY w.id_gracza, g.rodzaj
-        ";
-        $stmt = $this->connection->prepare($sql);
-        $stmt->execute();
-        $results = $stmt->fetchAll();
-
-        $totalAveragePoints = 0;
-        foreach ($results as $row) {
-            if ($row['average_points'] !== null) {
-                $totalAveragePoints += $row['average_points'];
-            }
-        }
-
-        return count($results) > 0 ? $totalAveragePoints / count($results) : 0;
-    }
+function averagePointDifferencePerGametype(): array {
+    $sql = "
+        SELECT 
+            g.rodzaj AS game_type,
+            w.id_gracza AS player_id,
+            AVG(w.liczba_punktow) AS average_points
+        FROM gry g
+        JOIN rozgrywki m ON g.id = m.id_gry
+        JOIN wyniki w ON m.id = w.id_rozgrywki
+        WHERE g.aktywna = 1
+        GROUP BY g.rodzaj, w.id_gracza
+        ORDER BY g.rodzaj, w.id_gracza
+    ";
+    $stmt = $this->connection->prepare($sql);
+    $stmt->execute();
+    return $stmt->fetchAll();
+}
 } 
