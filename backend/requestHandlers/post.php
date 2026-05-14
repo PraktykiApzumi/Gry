@@ -58,7 +58,7 @@ function postGame()
     $minPlayers = $data['minPlayers'];
     $maxPlayers = $data['maxPlayers'];
     if ($minPlayers > $maxPlayers) {
-        $errors['minPlayers'] = 'minPlayers cannot be greater than maxPlayers.';
+        $errors['minPlayers'] = 'minPlayers nie moze byc mniejsze niz maxPlayers.';
     }
 
     if (!empty($errors)) {
@@ -80,6 +80,7 @@ function postMatch()
 {
     $data = readJsonBody();
     $errors = [];
+    $seenPlayerNames = [];
 
     $gameNameError = validateRequiredString($data, 'gameName', 2, 100);
 
@@ -106,6 +107,13 @@ function postMatch()
 
             if ($nameError !== null) {
                 $errors["players.$index.name"] = $nameError;
+            } else {
+                $normalizedName = mb_strtolower(trim((string) $player['name']));
+                if (isset($seenPlayerNames[$normalizedName])) {
+                    $errors["players.$index.name"] = 'Ten gracz jest juz dodany do tej rozgrywki.';
+                } else {
+                    $seenPlayerNames[$normalizedName] = true;
+                }
             }
 
             $pointsError = validateRequiredInt($player, 'points', 0);
@@ -142,7 +150,7 @@ function postMatch()
     }
     if (!empty($missingPlayers)) {
         errorResponse(
-            'Nie wszyscy gracze istnieja w bazie. Dodaj ich przyciskiem "+".',
+            'Nie wszyscy gracze istnieja w bazie.',
             404,
             ['players' => $missingPlayers]
         );

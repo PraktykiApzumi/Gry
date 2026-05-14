@@ -5,6 +5,7 @@ import { attachAutocomplete } from "./autocomplete.js";
 function validateMatchPayload(payload) {
   const errors = [];
   const containsLetter = (value) => /[a-zA-Z]/.test(value);
+  const seenNames = new Set();
 
   if (payload.gameName.length < 2 || payload.gameName.length > 100) {
     errors.push("Nazwa gry musi miec od 2 do 100 znakow.");
@@ -20,6 +21,13 @@ function validateMatchPayload(payload) {
       errors.push(`Gracz ${index + 1}: nazwa musi miec od 2 do 100 znakow.`);
     } else if (!containsLetter(player.name)) {
       errors.push(`Gracz ${index + 1}: nazwa musi zawierac litery, nie same cyfry.`);
+    } else {
+      const normalizedName = player.name.toLocaleLowerCase("pl-PL");
+      if (seenNames.has(normalizedName)) {
+        errors.push(`Gracz ${index + 1}: ten sam gracz nie moze byc dodany dwa razy.`);
+      } else {
+        seenNames.add(normalizedName);
+      }
     }
 
     if (!Number.isInteger(player.points) || player.points < 0) {
@@ -68,6 +76,22 @@ function getPlayerValues(playersContainer) {
     name: card.querySelector(".player-name")?.value ?? "",
     points: card.querySelector(".player-points")?.value ?? ""
   }));
+}
+
+function findDuplicatePlayerNames(players) {
+  const counts = new Map();
+
+  players.forEach((player) => {
+    if (player.name.length < 2 || !/[a-zA-Z]/.test(player.name)) return;
+    const normalizedName = player.name.toLocaleLowerCase("pl-PL");
+    counts.set(normalizedName, (counts.get(normalizedName) || 0) + 1);
+  });
+
+  return new Set(
+    Array.from(counts.entries())
+      .filter(([, count]) => count > 1)
+      .map(([name]) => name)
+  );
 }
 
 export function initMatchForm({
@@ -123,12 +147,12 @@ export function initMatchForm({
           if (!trimmedName) return;
           clearFieldError(playerNameInput);
           try {
-            const created = await postJson("api/player", { name: trimmedName });
+            await postJson("api/player", { name: trimmedName });
             playerNameInput.value = trimmedName;
             showToast(`Dodano gracza "${trimmedName}".`);
-          } catch (err) {
-            setFieldError(playerNameInput, "Nie udało się dodać tego gracza.");
-            showToast("Nie udało się dodać gracza.", "error");
+          } catch {
+            setFieldError(playerNameInput, "Nie udalo sie dodac tego gracza.");
+            showToast("Nie udalo sie dodac gracza.", "error");
           }
         }
       }
@@ -294,7 +318,7 @@ export function initMatchForm({
     }
 
     if (!hasResolvedGameConstraints) {
-      setFieldError(gameNameInput, "Wybierz istniejącą grę z bazy albo dodaj ją najpierw.");
+      setFieldError(gameNameInput, "Wybierz istniejaca gre z bazy albo dodaj ja najpierw.");
       return;
     }
 
@@ -314,40 +338,43 @@ export function initMatchForm({
     const validationErrors = validateMatchPayload(matchPayload);
     if (validationErrors.length > 0) {
       if (gameName.length < 2 || gameName.length > 100) {
-        setFieldError(gameNameInput, "Nazwa gry musi mieć od 2 do 100 znaków.");
+        setFieldError(gameNameInput, "Nazwa gry musi miec od 2 do 100 znakow.");
       }
+
+      const duplicateNames = findDuplicatePlayerNames(players);
 
       players.forEach((player, index) => {
         clearFieldError(player.nameInput);
         clearFieldError(player.pointsInput);
 
         if (player.name.length < 2 || player.name.length > 100) {
-          setFieldError(player.nameInput, `Gracz ${index + 1}: nazwa musi mieć od 2 do 100 znaków.`);
+          setFieldError(player.nameInput, `Gracz ${index + 1}: nazwa musi miec od 2 do 100 znakow.`);
         } else if (!/[a-zA-Z]/.test(player.name)) {
-          setFieldError(player.nameInput, `Gracz ${index + 1}: nazwa musi zawierać litery.`);
+          setFieldError(player.nameInput, `Gracz ${index + 1}: nazwa musi zawierac litery.`);
+        } else if (duplicateNames.has(player.name.toLocaleLowerCase("pl-PL"))) {
+          setFieldError(player.nameInput, `Gracz ${index + 1}: ten sam gracz nie moze byc dodany dwa razy.`);
         }
 
         if (!Number.isInteger(player.points) || player.points < 0) {
-          setFieldError(player.pointsInput, `Gracz ${index + 1}: podaj liczbę punktów 0 lub większą.`);
+          setFieldError(player.pointsInput, `Gracz ${index + 1}: podaj liczbe punktow 0 lub wieksza.`);
         }
       });
       return;
     }
 
     try {
-      const matchRes = await postJson("api/match", matchPayload);
-      console.log("[mecz zapisany - backend]", matchRes);
+      await postJson("api/match", matchPayload);
 
       gameNameInput.value = "";
       clearMaxPlayersRange();
 
-      showToast("Dodano rozgrywkę do bazy.");
+      showToast("Dodano rozgrywke do bazy.");
     } catch (err) {
       if (err instanceof Error && err.message) {
         showToast(err.message, "error");
         return;
       }
-      showToast("Nie można teraz wysłać danych.", "error");
+      showToast("Nie mozna teraz wyslac danych.", "error");
     }
   });
 }
