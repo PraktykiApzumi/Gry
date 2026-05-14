@@ -4,3 +4,8 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 
 RewriteRule ^ ../backend/entry.php [QSA,L]
+
+<Files ".env">
+    Order allow,deny
+    Deny from all
+</Files>
