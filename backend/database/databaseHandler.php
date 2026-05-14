@@ -544,8 +544,9 @@ class DatabaseHandle {
                 SUM(CASE WHEN m.id_zwyciezcy IS NOT NULL THEN 1 ELSE 0 END) AS wins
             FROM gry g
             LEFT JOIN rozgrywki m ON g.id = m.id_gry
+            join wyniki w ON m.id = w.id_rozgrywki
             WHERE g.aktywna = 1
-            GROUP BY g.id, g.nazwa
+            GROUP BY g.id, g.nazwa,w.id_gracza
         ";
         $stmt = $this->connection->prepare($sql);
         $stmt->execute();
@@ -569,8 +570,9 @@ class DatabaseHandle {
                 SUM(CASE WHEN m.id_zwyciezcy IS NOT NULL THEN 1 ELSE 0 END) AS wins
             FROM gry g
             LEFT JOIN rozgrywki m ON g.id = m.id_gry
+            JOIN wyniki w ON m.id = w.id_rozgrywki
             WHERE g.aktywna = 1
-            GROUP BY g.rodzaj
+            GROUP BY g.rodzaj, w.id_gracza
         ";
         $stmt = $this->connection->prepare($sql);
         $stmt->execute();
@@ -596,7 +598,7 @@ class DatabaseHandle {
             JOIN rozgrywki m ON g.id = m.id_gry
             JOIN wyniki w ON m.id = w.id_rozgrywki
             WHERE g.aktywna = 1
-            GROUP BY g.id, g.nazwa
+            GROUP BY g.id, g.nazwa, w.id_gracza
         ";
         $stmt = $this->connection->prepare($sql);
         $stmt->execute();
@@ -621,7 +623,7 @@ class DatabaseHandle {
             JOIN rozgrywki m ON g.id = m.id_gry
             JOIN wyniki w ON m.id = w.id_rozgrywki
             WHERE g.aktywna = 1
-            GROUP BY g.rodzaj
+            GROUP BY w.id_gracza, g.rodzaj
         ";
         $stmt = $this->connection->prepare($sql);
         $stmt->execute();
