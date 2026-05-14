@@ -29,6 +29,31 @@ function validateMatchPayload(payload) {
   return errors;
 }
 
+function showToast(msg) {
+  const toast = document.createElement("div");
+  toast.textContent = msg;
+  Object.assign(toast.style, {
+    position: "fixed",
+    bottom: "24px",
+    right: "24px",
+    background: "#2d7a2d",
+    color: "#fff",
+    padding: "12px 22px",
+    borderRadius: "8px",
+    fontSize: "15px",
+    boxShadow: "0 4px 16px rgba(0,0,0,0.18)",
+    opacity: "0",
+    transition: "opacity 0.3s",
+    zIndex: "9999",
+  });
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => (toast.style.opacity = "1"));
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    setTimeout(() => toast.remove(), 300);
+  }, 2500);
+}
+
 export function initMatchForm({
   matchForm,
   gameNameInput,
@@ -237,12 +262,19 @@ export function initMatchForm({
     try {
       const matchRes = await postJson("api/match", matchPayload);
       console.log("[mecz zapisany — backend]", matchRes);
+
+      gameNameInput.value = "";
+      clearMaxPlayersRange();
+
+      showToast("Dodano rozgrywkę do bazy");
     } catch (err) {
       if (err instanceof Error && err.message) {
         alert(err.message);
         return;
       }
       alert("Nie mozna teraz wyslac danych.");
+      }
+     
     }
-  });
+  );
 }
