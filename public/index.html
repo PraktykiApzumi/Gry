@@ -42,8 +42,18 @@
       <button type="button" class="filter-btn" data-filter="wins">Najwięcej zwycięstw</button>
       <button type="button" class="filter-btn" data-filter="played">Najwięcej gier</button>
     </div>
+    <div class="filtry">
+      <button type="button" class="scope-btn active" data-scope="game">Dla gry</button>
+      <button type="button" class="scope-btn" data-scope="type">Dla typu gry</button>
+    </div>
     <form id="statsForm" class="szukaj-form">
       <input id="statsName" type="text" name="search" placeholder="Szukaj gry..." required/>
+      <select id="statsType" name="game_type" style="display:none;">
+        <option value="">Wybierz typ gry...</option>
+        <option value="planszowa">Planszowa</option>
+        <option value="karciana">Karciana</option>
+        <option value="komputerowa">Komputerowa</option>
+      </select>
       <button type="submit" class="btn-dodaj">Szukaj</button>
     </form>
     <div class="table-wrapper">
@@ -51,16 +61,17 @@
         <thead>
           <tr>
             <th>Gracz</th>
-            <th>Gra</th>
+            <th>Zakres</th>
             <th>Punkty</th>
             <th>Śr. pkt</th>
             <th>Zwycięstwa</th>
             <th>Ilość gier</th>
+            <th>Winrate</th>
           </tr>
         </thead>
         <tbody id="tableBody">
           <tr>
-            <td colspan="5" style="text-align:center; color:#999;">Brak danych</td>
+            <td colspan="7" style="text-align:center; color:#999;">Brak danych</td>
           </tr>
         </tbody>
       </table>

@@ -3,53 +3,26 @@ require_once __DIR__ . '/helpers/db.php';
 require_once __DIR__ . '/helpers/json.php';
 require_once __DIR__ . '/helpers/validation.php';
 
-function getStatsWins($params)
+function getStats($params)
 {
-    $gameName = validateRouteNameParam($params);
-    $leaderboard = dbHandle()->getWinSortedLeaderboard($gameName);
-    $averagePoints = dbHandle()->averagePointDifferencePerGame($gameName);
-    foreach ($leaderboard as &$player) {
-        $player['averagePoints'] = $averagePoints;
+    $scope = $params['scope'] ?? '';
+    $filter = $params['filter'] ?? '';
+    $name = validateRouteNameParam($params);
+
+    if (!in_array($scope, ['game', 'type'], true)) {
+        errorResponse('Niepoprawny zakres statystyk.', 400, ['scope' => 'Dozwolone: game, type.']);
     }
-    jsonResponse([
-        'ok' => true,
-        'gameName' => $gameName,
-        'filter' => 'wins',
-        'data' => $leaderboard,
-    ]);
-}
 
-function getStatsPlayed($params)
-{
-    $gameName = validateRouteNameParam($params);
-    $leaderboard = dbHandle()->getPlayedSortedLeaderboard($gameName);
-    $averagePoints = dbHandle()->averagePointDifferencePerGame($gameName);
-    foreach ($leaderboard as &$player) {
-        $player['averagePoints'] = $averagePoints;
-    }
-    jsonResponse([
-        'ok' => true,
-        'gameName' => $gameName,
-        'filter' => 'played',
-        'data' => $leaderboard,
-    ]);
-}
-function getStatsPoints($params)
-{
-    $gameName = validateRouteNameParam($params);
-
-    $leaderboard = dbHandle()->getPointsSortedLeaderboard($gameName);
-    $averagePoints = dbHandle()->averagePointDifferencePerGame($gameName);
-
-    foreach ($leaderboard as &$player) {
-        $player['averagePoints'] = $averagePoints;
+    if (!in_array($filter, ['points', 'wins', 'played'], true)) {
+        errorResponse('Niepoprawny filtr statystyk.', 400, ['filter' => 'Dozwolone: points, wins, played.']);
     }
 
     jsonResponse([
         'ok' => true,
-        'gameName' => $gameName,
-        'filter' => 'points',
-        'data' => $leaderboard,
+        'scope' => $scope,
+        'name' => $name,
+        'filter' => $filter,
+        'data' => dbHandle()->getLeaderboard($scope, $name, $filter),
     ]);
 }
 
