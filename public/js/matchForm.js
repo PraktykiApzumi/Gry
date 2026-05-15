@@ -2,7 +2,7 @@ import { toInt } from "./utils.js";
 import { getRequest, postJson } from "./api.js";
 import { attachAutocomplete } from "./autocomplete.js";
 
-function validateMatchPayload(payload) {
+function validateMatchPayload(payload, winType = "punktowa") {
   const errors = [];
   const containsLetter = (value) => /[a-zA-Z]/.test(value);
   const seenNames = new Set();
@@ -30,10 +30,18 @@ function validateMatchPayload(payload) {
       }
     }
 
-    if (!Number.isInteger(player.points) || player.points < 0) {
+    if (winType !== "inna" && (!Number.isInteger(player.points) || player.points < 0)) {
       errors.push(`Gracz ${index + 1}: punkty musza byc liczba calkowita >= 0.`);
     }
   });
+
+  if (winType === "inna") {
+    const winnerName = String(payload.winnerName || "").trim();
+    const hasWinner = payload.players.some((player) => player.name === winnerName);
+    if (!hasWinner) {
+      errors.push("Wybierz zwyciezce rozgrywki.");
+    }
+  }
 
   return errors;
 }
@@ -74,7 +82,8 @@ function clearFieldError(input) {
 function getPlayerValues(playersContainer) {
   return Array.from(playersContainer.querySelectorAll(".player-card")).map((card) => ({
     name: card.querySelector(".player-name")?.value ?? "",
-    points: card.querySelector(".player-points")?.value ?? ""
+    points: card.querySelector(".player-points")?.value ?? "",
+    winner: Boolean(card.querySelector(".winner-radio")?.checked)
   }));
 }
 
@@ -109,6 +118,7 @@ export function initMatchForm({
 
   let gameConstraintsRequestId = 0;
   let hasResolvedGameConstraints = false;
+  let currentWinType = "punktowa";
   let savedPlayers = [];
 
   function saveVisiblePlayers() {
@@ -180,11 +190,19 @@ export function initMatchForm({
       const player = savedPlayers[i] || {};
       const card = document.createElement("div");
       card.className = "player-card";
+      const isOtherWinType = currentWinType === "inna";
       card.innerHTML = `
         <div class="field-label">Gracz ${i + 1}</div>
         <input type="text" class="player-name" placeholder="Nazwa gracza" value="${player.name || ""}" required>
         <div class="field-error" aria-live="polite"></div>
-        <input type="number" class="player-points" placeholder="Punkty" min="0" value="${player.points || ""}" required>
+        ${isOtherWinType ? `
+          <label class="winner-radio-label">
+            <input type="radio" name="winnerName" class="winner-radio" value="${player.name || ""}" ${player.winner ? "checked" : ""}>
+            Zwyciezca
+          </label>
+        ` : `
+          <input type="number" class="player-points" placeholder="Punkty" min="0" value="${player.points || ""}" required>
+        `}
         <div class="field-error" aria-live="polite"></div>
       `;
 
@@ -192,15 +210,23 @@ export function initMatchForm({
       card.querySelectorAll("input").forEach((input) => {
         input.addEventListener("input", () => clearFieldError(input));
       });
+      const nameInput = card.querySelector(".player-name");
+      const winnerRadio = card.querySelector(".winner-radio");
+      if (nameInput && winnerRadio) {
+        nameInput.addEventListener("input", () => {
+          winnerRadio.value = nameInput.value.trim();
+        });
+      }
       playersContainer.appendChild(card);
     }
   }
 
-  function setMaxPlayersRange(minPlayers, maxPlayers) {
+  function setMaxPlayersRange(minPlayers, maxPlayers, winType = "punktowa") {
     maxPlayersInput.min = String(minPlayers);
     maxPlayersInput.max = String(maxPlayers);
     maxPlayersInput.placeholder = `Liczba graczy (${minPlayers}-${maxPlayers})`;
     maxPlayersInput.value = "";
+    currentWinType = winType || "punktowa";
     hasResolvedGameConstraints = true;
     clearFieldError(gameNameInput);
     toggleMatchPlayersFields(true);
@@ -214,6 +240,7 @@ export function initMatchForm({
     maxPlayersInput.max = String(defaultMaxPlayersMax);
     maxPlayersInput.placeholder = "Liczba graczy";
     maxPlayersInput.value = String(defaultMaxPlayersValue);
+    currentWinType = "punktowa";
     hasResolvedGameConstraints = false;
     toggleMatchPlayersFields(false);
   }
@@ -233,6 +260,7 @@ export function initMatchForm({
       const gameData = gameDataResponse?.gameData ?? {};
       const minPlayers = toInt(gameData.min_graczy ?? gameData.minPlayers);
       const maxPlayers = toInt(gameData.max_graczy ?? gameData.maxPlayers);
+      const winType = gameData.rodzaj_wygranej ?? gameData.winType ?? "punktowa";
 
       if (
         Number.isInteger(minPlayers) &&
@@ -240,7 +268,7 @@ export function initMatchForm({
         minPlayers >= 1 &&
         maxPlayers >= minPlayers
       ) {
-        setMaxPlayersRange(minPlayers, maxPlayers);
+        setMaxPlayersRange(minPlayers, maxPlayers, winType);
         return;
       }
 
@@ -291,6 +319,7 @@ export function initMatchForm({
     const gameName = typeof detail.name === "string" ? detail.name.trim() : "";
     const minPlayers = toInt(detail.minPlayers);
     const maxPlayers = toInt(detail.maxPlayers);
+    const winType = detail.winType || "punktowa";
 
     if (!gameName) return;
 
@@ -302,7 +331,7 @@ export function initMatchForm({
       minPlayers >= 1 &&
       maxPlayers >= minPlayers
     ) {
-      setMaxPlayersRange(minPlayers, maxPlayers);
+      setMaxPlayersRange(minPlayers, maxPlayers, winType);
       return;
     }
 
@@ -325,8 +354,10 @@ export function initMatchForm({
     const players = Array.from(playersContainer.querySelectorAll(".player-card")).map((card) => ({
       nameInput: card.querySelector(".player-name"),
       pointsInput: card.querySelector(".player-points"),
+      winnerInput: card.querySelector(".winner-radio"),
       name: card.querySelector(".player-name").value.trim(),
-      points: toInt(card.querySelector(".player-points").value)
+      points: currentWinType === "inna" ? 0 : toInt(card.querySelector(".player-points").value),
+      winner: Boolean(card.querySelector(".winner-radio")?.checked)
     }));
     saveVisiblePlayers();
 
@@ -334,9 +365,16 @@ export function initMatchForm({
       gameName,
       players: players.map(({ name, points }) => ({ name, points }))
     };
+    if (currentWinType === "inna") {
+      matchPayload.winnerName = players.find((player) => player.winner)?.name || "";
+    }
 
-    const validationErrors = validateMatchPayload(matchPayload);
+    const validationErrors = validateMatchPayload(matchPayload, currentWinType);
     if (validationErrors.length > 0) {
+      if (currentWinType === "inna" && !matchPayload.winnerName) {
+        showToast("Wybierz zwyciezce rozgrywki.", "error");
+      }
+
       if (gameName.length < 2 || gameName.length > 100) {
         setFieldError(gameNameInput, "Nazwa gry musi miec od 2 do 100 znakow.");
       }
@@ -355,7 +393,7 @@ export function initMatchForm({
           setFieldError(player.nameInput, `Gracz ${index + 1}: ten sam gracz nie moze byc dodany dwa razy.`);
         }
 
-        if (!Number.isInteger(player.points) || player.points < 0) {
+        if (currentWinType !== "inna" && (!Number.isInteger(player.points) || player.points < 0)) {
           setFieldError(player.pointsInput, `Gracz ${index + 1}: podaj liczbe punktow 0 lub wieksza.`);
         }
       });

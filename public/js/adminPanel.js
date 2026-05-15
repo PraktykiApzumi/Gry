@@ -215,9 +215,10 @@ async function saveEntityModal(event) {
 function openScoresModal(matchId) {
   const match = matches.find((item) => item.id === matchId);
   const scores = scoresByMatch[matchId] || [];
+  const isOtherWinType = match.rodzaj_wygranej === "inna";
 
   activeMatchId = matchId;
-  qs("#adminScoresModalTitle").textContent = `Wyniki rozgrywki #${match.id}`;
+  qs("#adminScoresModalTitle").textContent = isOtherWinType ? `Zwyciezca rozgrywki #${match.id}` : `Wyniki rozgrywki #${match.id}`;
   qs("#adminScoresMeta").innerHTML = `
     <div><strong>Gra:</strong> ${match.game_name}</div>
     <div><strong>Zwyciezca:</strong> ${match.winner_nick}</div>
@@ -226,9 +227,17 @@ function openScoresModal(matchId) {
   qs("#adminScoresFields").innerHTML = scores.map((score) => `
     <div class="admin-score-row">
       <div class="admin-score-name">${score.player_nick}</div>
-      <input type="number" min="0" name="score-${score.id}" value="${score.liczba_punktow}" required />
+      ${isOtherWinType ? `
+        <label class="winner-radio-label">
+          <input type="radio" name="winnerId" value="${score.id_gracza}" ${Number(score.id_gracza) === Number(match.id_zwyciezcy) ? "checked" : ""} required />
+          Zwyciezca
+        </label>
+      ` : `
+        <input type="number" min="0" name="score-${score.id}" value="${score.liczba_punktow}" required />
+      `}
     </div>
   `).join("");
+  qs("#adminScoresSaveBtn").textContent = isOtherWinType ? "Zapisz zwyciezce" : "Zapisz wyniki";
   qs("#adminScoresModal").style.display = "flex";
 }
 
@@ -237,6 +246,7 @@ function closeScoresModal() {
   qs("#adminScoresForm").reset();
   qs("#adminScoresMeta").innerHTML = "";
   qs("#adminScoresFields").innerHTML = "";
+  qs("#adminScoresSaveBtn").textContent = "Zapisz wyniki";
   qs("#adminScoresModal").style.display = "none";
 }
 
@@ -246,19 +256,26 @@ async function saveScores(event) {
   const scores = scoresByMatch[activeMatchId] || [];
   const data = new FormData(event.currentTarget);
   let winnerId = scores[0].id_gracza;
-  let winnerPoints = -1;
+  let winnerPoints = match.rodzaj_wygranej === "punktowa-malejaca" ? Number.POSITIVE_INFINITY : -1;
 
   try {
-    for (const score of scores) {
-      const points = Number(data.get(`score-${score.id}`));
-      await putJson(`api/score/${score.id}`, {
-        matchId: score.id_rozgrywki,
-        playerId: score.id_gracza,
-        points
-      });
-      if (points > winnerPoints) {
-        winnerPoints = points;
-        winnerId = score.id_gracza;
+    if (match.rodzaj_wygranej === "inna") {
+      winnerId = Number(data.get("winnerId"));
+    } else {
+      for (const score of scores) {
+        const points = Number(data.get(`score-${score.id}`));
+        await putJson(`api/score/${score.id}`, {
+          matchId: score.id_rozgrywki,
+          playerId: score.id_gracza,
+          points
+        });
+        const isBetter = match.rodzaj_wygranej === "punktowa-malejaca"
+          ? points < winnerPoints
+          : points > winnerPoints;
+        if (isBetter) {
+          winnerPoints = points;
+          winnerId = score.id_gracza;
+        }
       }
     }
 

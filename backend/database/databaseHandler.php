@@ -324,6 +324,7 @@ class DatabaseHandle {
                 r.id,
                 r.id_gry,
                 gr.nazwa AS game_name,
+                gr.rodzaj_wygranej,
                 r.id_zwyciezcy,
                 g.nick AS winner_nick,
                 r.data,

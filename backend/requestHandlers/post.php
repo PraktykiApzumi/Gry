@@ -81,11 +81,20 @@ function postMatch()
     $data = readJsonBody();
     $errors = [];
     $seenPlayerNames = [];
+    $game = null;
+    $winType = 'punktowa';
 
     $gameNameError = validateRequiredString($data, 'gameName', 2, 100);
 
     if ($gameNameError !== null) {
         $errors['gameName'] = $gameNameError;
+    } else {
+        $game = dbHandle()->getGameRowByName(trim($data['gameName']));
+        if ($game === null) {
+            $errors['gameName'] = 'Brak gry w bazie.';
+        } else {
+            $winType = trim((string) $game['rodzaj_wygranej']);
+        }
     }
 
     if (
@@ -116,11 +125,20 @@ function postMatch()
                 }
             }
 
-            $pointsError = validateRequiredInt($player, 'points', 0);
+            if ($winType !== 'inna') {
+                $pointsError = validateRequiredInt($player, 'points', 0);
 
-            if ($pointsError !== null) {
-                $errors["players.$index.points"] = $pointsError;
+                if ($pointsError !== null) {
+                    $errors["players.$index.points"] = $pointsError;
+                }
             }
+        }
+    }
+
+    if ($winType === 'inna') {
+        $winnerNameError = validateRequiredString($data, 'winnerName', 2, 100);
+        if ($winnerNameError !== null) {
+            $errors['winnerName'] = $winnerNameError;
         }
     }
 
@@ -129,11 +147,6 @@ function postMatch()
     }
 
     $gameName = trim($data['gameName']);
-    $game = dbHandle()->getGameRowByName($gameName);
-    if ($game === null) {
-        errorResponse('Nie znaleziono gry o podanej nazwie.', 404, ['gameName' => 'Brak gry w bazie.']);
-    }
-
     $gameId = (int) $game['id'];
     $players = $data['players'];
 
@@ -157,11 +170,31 @@ function postMatch()
     }
 
     $winnerIndex = 0;
-    $maxPoints = $players[0]['points'];
-    foreach ($players as $i => $player) {
-        if ($player['points'] > $maxPoints) {
-            $maxPoints = $player['points'];
-            $winnerIndex = $i;
+    if ($winType === 'inna') {
+        $winnerName = mb_strtolower(trim((string) $data['winnerName']));
+        $winnerIndex = null;
+        foreach ($players as $i => $player) {
+            if (mb_strtolower(trim((string) $player['name'])) === $winnerName) {
+                $winnerIndex = $i;
+                break;
+            }
+        }
+
+        if ($winnerIndex === null) {
+            errorResponse('Zwyciezca musi byc jednym z graczy rozgrywki.', 400, ['winnerName' => 'Wybierz gracza z listy.']);
+        }
+    } else {
+        $bestPoints = (int) $players[0]['points'];
+        foreach ($players as $i => $player) {
+            $points = (int) $player['points'];
+            $isBetter = $winType === 'punktowa-malejaca'
+                ? $points < $bestPoints
+                : $points > $bestPoints;
+
+            if ($isBetter) {
+                $bestPoints = $points;
+                $winnerIndex = $i;
+            }
         }
     }
 
@@ -173,7 +206,8 @@ function postMatch()
 
     foreach ($players as $i => $player) {
         $pid = (int) $playerRowsByIndex[$i]['id'];
-        dbHandle()->addScore($matchId, $pid, (int) $player['points']);
+        $points = $winType === 'inna' ? 0 : (int) $player['points'];
+        dbHandle()->addScore($matchId, $pid, $points);
     }
 
     jsonResponse([
