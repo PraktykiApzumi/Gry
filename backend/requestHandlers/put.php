@@ -172,7 +172,6 @@ function putScore($params)
     }
 
     dbHandle()->updateScore(
-        $id,
         (int) $data['matchId'],
         (int) $data['playerId'],
         (int) $data['points']

@@ -7,9 +7,7 @@ return [
         'api/match' => 'postMatch',
     ],
     'GET' => [
-        'api/stats/wins/{name}' => 'getStatsWins',
-        'api/stats/points/{name}' => 'getStatsPoints',
-        'api/stats/played/{name}' => 'getStatsPlayed',
+        'api/stats/{scope}/{filter}/{name}' => 'getStats',
 
         'api/player/{name}' => 'getPlayerByName',
         'api/game/{name}' => 'getGameByName',
