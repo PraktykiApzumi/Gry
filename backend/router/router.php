@@ -33,7 +33,7 @@ function matchRoute($routes, $method, $path)
         foreach ($routeParts as $i => $part) {
             if (str_starts_with($part, '{') && str_ends_with($part, '}')) {
                 $name = trim($part, '{}');
-                $params[$name] = $urlParts[$i];
+                $params[$name] = rawurldecode($urlParts[$i]);
             } elseif ($part !== $urlParts[$i]) {
                 $match = false;
                 break;

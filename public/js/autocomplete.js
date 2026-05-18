@@ -8,7 +8,7 @@ function normalizeSuggestions(raw) {
 }
 
 function normalizeValue(value) {
-  return String(value || "").trim().toLocaleLowerCase();
+  return String(value || "").trim().toLocaleLowerCase("pl-PL");
 }
 
 export function attachAutocomplete(inputEl, endpointBuilder, options = {}) {
