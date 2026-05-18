@@ -1,5 +1,5 @@
 import { qs } from "./dom.js";
-import { initModals, openGameModal } from "../modals.js";
+import { initModals, openGameModal } from "./modals.js";
 import { initMatchForm } from "./matchForm.js";
 import { initHistory } from "./history.js";
 import { loadAdminPanel, refreshAdminPanel } from "./adminPanel.js";

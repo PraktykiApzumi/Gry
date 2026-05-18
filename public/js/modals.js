@@ -1,4 +1,4 @@
-import { postJson, putJson } from "./js/api.js";
+import { postJson, putJson } from "./api.js";
 
 const gameModalState = {
   mode: "create",
