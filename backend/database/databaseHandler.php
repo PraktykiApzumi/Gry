@@ -197,8 +197,6 @@ class DatabaseHandle {
             JOIN gry gr    
                 ON r.id_gry = gr.id
             WHERE gr.nazwa = :game_name
-              AND g.aktywny = 1
-              AND gr.aktywna = 1
             ORDER BY r.data DESC
             LIMIT 20
         ";
@@ -229,9 +227,7 @@ class DatabaseHandle {
             JOIN gry gr           
                 ON r.id_gry = gr.id
             WHERE g.nick = :player_nick
-              AND g.aktywny = 1
               AND g_winner.aktywny = 1
-              AND gr.aktywna = 1
             ORDER BY r.data DESC
             LIMIT 20
         ";
@@ -256,8 +252,6 @@ class DatabaseHandle {
                 ON r.id_zwyciezcy = g.id
             JOIN gry gr   
                 ON r.id_gry = gr.id
-            WHERE g.aktywny = 1
-              AND gr.aktywna = 1
             ORDER BY r.data DESC
             LIMIT :limit
         ";
@@ -298,8 +292,6 @@ class DatabaseHandle {
             FROM rozgrywki r
             JOIN gry gr ON gr.id = r.id_gry
             JOIN gracze g ON g.id = r.id_zwyciezcy
-            WHERE gr.aktywna = 1
-              AND g.aktywny = 1
             ORDER BY r.id DESC
         ";
         $stmt = $this->connection->query($sql);
@@ -319,9 +311,7 @@ class DatabaseHandle {
         JOIN gracze g ON g.id = w.id_gracza
         JOIN rozgrywki r ON r.id = w.id_rozgrywki
         JOIN gry gr ON gr.id = r.id_gry
-        WHERE g.aktywny = 1
-          AND gr.aktywna = 1
-          AND w.id_rozgrywki = :rozgrywka_id
+        WHERE w.id_rozgrywki = :rozgrywka_id
         ORDER BY w.id_gracza DESC
     ";
 
@@ -496,4 +486,4 @@ class DatabaseHandle {
         return $stmt->rowCount() > 0;
     }
 
-}
+} 
