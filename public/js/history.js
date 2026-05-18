@@ -6,9 +6,15 @@ function formatDate(dateStr) {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
-  return d.toLocaleDateString("pl-PL", { year: "numeric", month: "2-digit", day: "2-digit" });
-}
 
+  return d.toLocaleString("pl-PL", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 function emptyRow(cols, msg) {
   return `<tr><td colspan="${cols}" style="text-align:center; color:#999;">${msg}</td></tr>`;
 }
