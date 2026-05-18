@@ -1,4 +1,5 @@
 import { qs, qsa } from "./dom.js";
+import { esc } from "./utils.js";
 import { getRequest } from "./api.js";
 import { attachAutocomplete } from "./autocomplete.js";
 
@@ -16,8 +17,8 @@ function renderStatsRows(rows, statsValue) {
 
     return `
       <tr>
-        <td>${row.nick}</td>
-        <td>${statsValue}</td>
+        <td>${esc(row.nick)}</td>
+        <td>${esc(statsValue)}</td>
         <td>${row.total_points ?? 0}</td>
         <td>${avgText}</td>
         <td>${wins}</td>
