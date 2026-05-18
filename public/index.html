@@ -240,7 +240,6 @@
       <h3>Dodaj nową grę</h3>
       <label for="game_name" class="field-label">Nazwa gry</label>
       <input type="text" id="game_name" name="name" placeholder="Nazwa gry..." />
-      <div class="field-error" data-error-for="name" aria-live="polite"></div>
       <label for="game_type" class="field-label">Typ gry</label>
       <select id="game_type" name="type">
         <option value="">Wybierz typ gry...</option>
@@ -248,13 +247,10 @@
         <option value="karciana">Karciana</option>
         <option value="komputerowa">Komputerowa</option>
       </select>
-      <div class="field-error" data-error-for="type" aria-live="polite"></div>
       <label for="game_minPlayers" class="field-label">Minimalna liczba graczy</label>
       <input type="number" id="game_minPlayers" name="minPlayers" placeholder="Min. graczy" min="1" max="20" />
-      <div class="field-error" data-error-for="minPlayers" aria-live="polite"></div>
       <label for="game_maxPlayers" class="field-label">Maksymalna liczba graczy</label>
       <input type="number" id="game_maxPlayers" name="maxPlayers" placeholder="Maks. graczy" min="1" max="20" />
-      <div class="field-error" data-error-for="maxPlayers" aria-live="polite"></div>
       <label for="game_winType" class="field-label">Rodzaj wygranej</label>
       <select id="game_winType" name="winType">
         <option value="">Rodzaj wygranej...</option>
@@ -262,7 +258,6 @@
         <option value="punktowa-malejaca">Punktowa malejąca</option>
         <option value="inna">Inna</option>
       </select>
-      <div class="field-error" data-error-for="winType" aria-live="polite"></div>
       <div class="modal-buttons">
         <button type="button" class="btn-dodaj" id="saveGameBtn">Zapisz</button>
         <button type="button" class="btn-anuluj" id="closeGameModal">Anuluj</button>

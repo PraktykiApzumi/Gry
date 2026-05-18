@@ -61,6 +61,16 @@ function postGame()
         $errors['minPlayers'] = 'minPlayers nie moze byc mniejsze niz maxPlayers.';
     }
 
+    $allowedTypes = ['planszowa', 'karciana', 'komputerowa'];
+    if (!in_array($data['type'], $allowedTypes, true)) {
+        $errors['type'] = 'Nieprawidłowy typ gry.';
+    }
+
+    $allowedWinTypes = ['punktowa', 'punktowa-malejaca', 'inna'];
+    if (!in_array($data['winType'], $allowedWinTypes, true)) {
+        $errors['winType'] = 'Nieprawidłowy typ wygranej.';
+    }
+
     if (!empty($errors)) {
         errorResponse('Bledne dane wejsciowe.', 400, $errors);
     }

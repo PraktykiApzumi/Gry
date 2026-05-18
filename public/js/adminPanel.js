@@ -1,6 +1,7 @@
 import { qs, qsa } from "./dom.js";
 import { attachAutocomplete } from "./autocomplete.js";
 import { deleteRequest, getRequest, postJson, putJson } from "./api.js";
+import { normalizeGame, normalizeUser } from "./utils.js";
 
 let players = [];
 let games = [];
@@ -104,12 +105,12 @@ function renderMatches() {
       <tr>
         <td>${match.id}</td>
         <td>${formatDate(match.data)}</td>
-        <td>${match.game_name}</td>
-        <td>${match.winner_nick}</td>
+        <td>${normalizeGame(match.game_name)}</td>
+        <td>${normalizeUser(match.winner_nick)}</td>
         <td>${match.ilosc_graczy}</td>
         <td>
           <div class="score-list">
-            ${(scoresByMatch[match.id] || []).map((score) => `<span class="score-chip">${score.player_nick}: ${score.liczba_punktow}</span>`).join("")}
+            ${(scoresByMatch[match.id] || []).map((score) => `<span class="score-chip">${normalizeUser(score.player_nick)}: ${score.liczba_punktow}</span>`).join("")}
             ${(scoresByMatch[match.id] || []).length ? `<button type="button" class="btn-score-edit" data-action="edit-scores" data-id="${match.id}">Edytuj wyniki</button>` : `<span class="admin-muted">Brak wynikow</span>`}
           </div>
         </td>
