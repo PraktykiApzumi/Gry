@@ -1,4 +1,4 @@
-import { toInt } from "./utils.js";
+import { toInt, escapeHtml } from "./utils.js";
 import { getRequest, postJson } from "./api.js";
 import { attachAutocomplete } from "./autocomplete.js";
 
@@ -42,8 +42,9 @@ function findDuplicatePlayerNames(players) {
   const counts = new Map();
 
   players.forEach((player) => {
-    if (player.name.length < 2 || !/[a-zA-Z]/.test(player.name)) return;
-    const normalizedName = player.name.toLocaleLowerCase("pl-PL");
+    const trimmedName = player.name.trim();
+    if (trimmedName.length < 2) return;
+    const normalizedName = trimmedName.toLocaleLowerCase("pl-PL");
     counts.set(normalizedName, (counts.get(normalizedName) || 0) + 1);
   });
 
@@ -144,15 +145,15 @@ export function initMatchForm({
       const isOtherWinType = currentWinType === "inna";
       card.innerHTML = `
         <div class="field-label">Gracz ${i + 1}</div>
-        <input type="text" class="player-name" placeholder="Nazwa gracza" value="${player.name || ""}" required>
+        <input type="text" class="player-name" placeholder="Nazwa gracza" value="${escapeHtml(player.name || "")}" required>
         <div class="field-error" aria-live="polite"></div>
         ${isOtherWinType ? `
           <label class="winner-radio-label">
-            <input type="radio" name="winnerName" class="winner-radio" value="${player.name || ""}" ${player.winner ? "checked" : ""}>
+            <input type="radio" name="winnerName" class="winner-radio" value="${escapeHtml(player.name || "")}" ${player.winner ? "checked" : ""}>
             Zwyciezca
           </label>
         ` : `
-          <input type="number" class="player-points" placeholder="Punkty" min="0" value="${player.points || ""}" required>
+          <input type="number" class="player-points" placeholder="Punkty" min="0" value="${escapeHtml(player.points || "")}" required>
         `}
         <div class="field-error" aria-live="polite"></div>
       `;
@@ -353,7 +354,7 @@ export function initMatchForm({
         continue;
       }
 
-      if (duplicateNames.has(player.name.toLocaleLowerCase("pl-PL"))) {
+      if (duplicateNames.has(player.name.trim().toLocaleLowerCase("pl-PL"))) {
         setFieldError(player.nameInput);
         showToast(
           `Gracz ${index + 1}: ten sam gracz nie moze byc dodany dwa razy.`,

@@ -1,3 +1,13 @@
+export function escapeHtml(value) {
+  if (value === null || value === undefined) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export function toInt(value) {
   if (typeof value === "string" && value.trim() === "") return null;
   const n = Number(value);
@@ -23,12 +33,12 @@ export function emptyRow(cols, msg) {
 
 export function normalizeUser(value) {
   if (!value) return "—";
-  return value.startsWith("deleted_user_") ? "deleted" : value;
+  return value.startsWith("deleted_user_") ? "deleted" : escapeHtml(value);
 }
 
 export function normalizeGame(value) {
   if (!value) return "—";
-  return value.startsWith("deleted_game_") ? "deleted" : value;
+  return value.startsWith("deleted_game_") ? "deleted" : escapeHtml(value);
 }
 
 export function formatDate(value) {

@@ -1,6 +1,7 @@
 import { qs, qsa } from "./dom.js";
 import { getRequest } from "./api.js";
 import { attachAutocomplete } from "./autocomplete.js";
+import { escapeHtml } from "./utils.js";
 
 function emptyStatsRow(tableBody, message = "Brak danych") {
   tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#999;">${message}</td></tr>`;
@@ -16,8 +17,8 @@ function renderStatsRows(rows, statsValue) {
 
     return `
       <tr>
-        <td>${row.nick}</td>
-        <td>${statsValue}</td>
+        <td>${escapeHtml(row.nick)}</td>
+        <td>${escapeHtml(statsValue)}</td>
         <td>${row.total_points ?? 0}</td>
         <td>${avgText}</td>
         <td>${wins}</td>
