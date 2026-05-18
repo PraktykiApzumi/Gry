@@ -19,10 +19,10 @@ return [
         'api/history/player/{name}' => 'getPlayerHistory',        
         'api/history/recent' => 'getRecentGames',
 
-        'api/admin/players' => 'getAdminPlayers',
-        'api/admin/games' => 'getAdminGames',
-        'api/admin/matches' => 'getAdminMatches',
-        'api/admin/scores/{gameId}' => 'getGameScores',
+        'api/panel/players' => 'getAdminPlayers',
+        'api/panel/games' => 'getAdminGames',
+        'api/panel/matches' => 'getAdminMatches',
+        'api/panel/scores/{gameId}' => 'getGameScores',
     ],
     'PUT' => [
         'api/player/{id}' => 'putPlayer',
