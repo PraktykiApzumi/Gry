@@ -42,8 +42,9 @@ function findDuplicatePlayerNames(players) {
   const counts = new Map();
 
   players.forEach((player) => {
-    if (player.name.length < 2 || !/[a-zA-Z]/.test(player.name)) return;
-    const normalizedName = player.name.toLocaleLowerCase("pl-PL");
+    const trimmedName = player.name.trim();
+    if (trimmedName.length < 2) return;
+    const normalizedName = trimmedName.toLocaleLowerCase("pl-PL");
     counts.set(normalizedName, (counts.get(normalizedName) || 0) + 1);
   });
 
@@ -353,7 +354,7 @@ export function initMatchForm({
         continue;
       }
 
-      if (duplicateNames.has(player.name.toLocaleLowerCase("pl-PL"))) {
+      if (duplicateNames.has(player.name.trim().toLocaleLowerCase("pl-PL"))) {
         setFieldError(player.nameInput);
         showToast(
           `Gracz ${index + 1}: ten sam gracz nie moze byc dodany dwa razy.`,

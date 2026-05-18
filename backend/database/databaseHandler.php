@@ -6,7 +6,7 @@ class DatabaseHandle {
     private PDO $connection;
 
     private function __construct(string $host, string $dbname, string $username, string $password) {
-        $dsn = "mysql:host=$host;dbname=$dbname;charset=utf8";
+        $dsn = "mysql:host=$host;dbname=$dbname;charset=utf8mb4";
 
         try {
             $this->connection = new PDO($dsn, $username, $password);
@@ -103,20 +103,43 @@ class DatabaseHandle {
         );
     }
 
+    private function filterByStrictPrefix(array $values, string $prefix): array
+    {
+        $prefixLength = mb_strlen($prefix, 'UTF-8');
+        if ($prefixLength === 0) {
+            return $values;
+        }
+
+        $prefixLower = mb_strtolower($prefix, 'UTF-8');
+
+        return array_values(array_filter($values, function ($value) use ($prefixLength, $prefixLower) {
+            $head = mb_substr($value, 0, $prefixLength, 'UTF-8');
+            return mb_strtolower($head, 'UTF-8') === $prefixLower;
+        }));
+    }
+
     public function getPlayerSuggestionsByPrefix(string $prefix, int $limit = 3): array {
         $safeLimit = max(1, min(10, $limit));
-        $sql = "SELECT nick FROM gracze WHERE nick LIKE :prefix AND aktywny = 1 ORDER BY nick ASC LIMIT {$safeLimit}";
+        $prefixLower = mb_strtolower($prefix, 'UTF-8');
+        $fetchLimit = $safeLimit * 5;
+        $sql = "SELECT nick FROM gracze WHERE LOWER(nick) COLLATE utf8mb4_bin LIKE :prefix AND aktywny = 1 ORDER BY nick ASC LIMIT {$fetchLimit}";
         $stmt = $this->connection->prepare($sql);
-        $stmt->execute(['prefix' => $prefix . '%']);
-        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $stmt->execute(['prefix' => $prefixLower . '%']);
+        $rows = $this->filterByStrictPrefix($stmt->fetchAll(PDO::FETCH_COLUMN), $prefix);
+
+        return array_slice($rows, 0, $safeLimit);
     }
 
     public function getGameSuggestionsByPrefix(string $prefix, int $limit = 3): array {
         $safeLimit = max(1, min(10, $limit));
-        $sql = "SELECT nazwa FROM gry WHERE nazwa LIKE :prefix AND aktywna = 1 ORDER BY nazwa ASC LIMIT {$safeLimit}";
+        $prefixLower = mb_strtolower($prefix, 'UTF-8');
+        $fetchLimit = $safeLimit * 5;
+        $sql = "SELECT nazwa FROM gry WHERE LOWER(nazwa) COLLATE utf8mb4_bin LIKE :prefix AND aktywna = 1 ORDER BY nazwa ASC LIMIT {$fetchLimit}";
         $stmt = $this->connection->prepare($sql);
-        $stmt->execute(['prefix' => $prefix . '%']);
-        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $stmt->execute(['prefix' => $prefixLower . '%']);
+        $rows = $this->filterByStrictPrefix($stmt->fetchAll(PDO::FETCH_COLUMN), $prefix);
+
+        return array_slice($rows, 0, $safeLimit);
     }
 
     private function getStatsScopeColumn(string $scope): string
@@ -135,17 +158,40 @@ class DatabaseHandle {
         return $orderBy[$sort] ?? $orderBy['points'];
     }
 
+    private function sqlEffectiveWinnerId(string $matchAlias = 'r', string $gameAlias = 'gr'): string
+    {
+        return "CASE
+            WHEN {$gameAlias}.rodzaj_wygranej = 'inna' THEN {$matchAlias}.id_zwyciezcy
+            WHEN (
+                SELECT COUNT(*) FROM wyniki w_eff WHERE w_eff.id_rozgrywki = {$matchAlias}.id
+            ) = 0 THEN {$matchAlias}.id_zwyciezcy
+            WHEN {$gameAlias}.rodzaj_wygranej = 'punktowa-malejaca' THEN (
+                SELECT w_eff.id_gracza FROM wyniki w_eff
+                WHERE w_eff.id_rozgrywki = {$matchAlias}.id
+                ORDER BY w_eff.liczba_punktow ASC, w_eff.id_gracza ASC
+                LIMIT 1
+            )
+            ELSE (
+                SELECT w_eff.id_gracza FROM wyniki w_eff
+                WHERE w_eff.id_rozgrywki = {$matchAlias}.id
+                ORDER BY w_eff.liczba_punktow DESC, w_eff.id_gracza ASC
+                LIMIT 1
+            )
+        END";
+    }
+
     public function getLeaderboard(string $scope, string $value, string $sort): array
     {
         $scopeColumn = $this->getStatsScopeColumn($scope);
         $orderBy = $this->getStatsOrderBy($sort);
+        $effectiveWinnerId = $this->sqlEffectiveWinnerId();
 
         $sql = "
         SELECT 
             g.id,
             g.nick,
             COUNT(DISTINCT r.id) AS played_games,
-            COUNT(DISTINCT CASE WHEN r.id_zwyciezcy = g.id THEN r.id END) AS wins,
+            COUNT(DISTINCT CASE WHEN ({$effectiveWinnerId}) = g.id THEN r.id END) AS wins,
             COALESCE(SUM(w.liczba_punktow), 0) AS total_points,
             AVG(w.liczba_punktow) AS average_points
         FROM gracze g
@@ -184,6 +230,8 @@ class DatabaseHandle {
 
     public function getMatchHistoryByGame(string $gameName): array
     {
+        $effectiveWinnerId = $this->sqlEffectiveWinnerId();
+
         $sql = "
             SELECT 
                 r.id,
@@ -192,10 +240,10 @@ class DatabaseHandle {
                 g.nick AS winner,
                 gr.nazwa AS game_name
             FROM rozgrywki r
-            JOIN gracze g  
-                ON r.id_zwyciezcy = g.id
             JOIN gry gr    
                 ON r.id_gry = gr.id
+            JOIN gracze g  
+                ON g.id = ({$effectiveWinnerId})
             WHERE gr.nazwa = :game_name
             ORDER BY r.data DESC
             LIMIT 20
@@ -209,6 +257,8 @@ class DatabaseHandle {
 
     public function getMatchHistoryByPlayer(string $playerNick): array
     {
+        $effectiveWinnerId = $this->sqlEffectiveWinnerId();
+
         $sql = "
             SELECT 
                 r.id,
@@ -222,10 +272,10 @@ class DatabaseHandle {
                 ON r.id = w.id_rozgrywki
             JOIN gracze g        
                 ON w.id_gracza = g.id
-            JOIN gracze g_winner 
-                ON r.id_zwyciezcy = g_winner.id
             JOIN gry gr           
                 ON r.id_gry = gr.id
+            JOIN gracze g_winner 
+                ON g_winner.id = ({$effectiveWinnerId})
             WHERE g.nick = :player_nick
               AND g_winner.aktywny = 1
             ORDER BY r.data DESC
@@ -240,6 +290,8 @@ class DatabaseHandle {
 
     public function getRecentMatches(int $limit = 20): array
     {
+        $effectiveWinnerId = $this->sqlEffectiveWinnerId();
+
         $sql = "
             SELECT 
                 r.id,
@@ -248,10 +300,10 @@ class DatabaseHandle {
                 gr.nazwa AS game_name,
                 g.nick AS winner
             FROM rozgrywki r
-            JOIN gracze g 
-                ON r.id_zwyciezcy = g.id
             JOIN gry gr   
                 ON r.id_gry = gr.id
+            JOIN gracze g 
+                ON g.id = ({$effectiveWinnerId})
             ORDER BY r.data DESC
             LIMIT :limit
         ";
