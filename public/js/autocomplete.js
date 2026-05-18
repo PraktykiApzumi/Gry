@@ -11,6 +11,15 @@ function normalizeValue(value) {
   return String(value || "").trim().toLocaleLowerCase("pl-PL");
 }
 
+function matchesStrictPrefix(item, query) {
+  const prefix = String(query || "");
+  if (!prefix) {
+    return true;
+  }
+  const normalizedPrefix = normalizeValue(prefix);
+  return normalizeValue(item).startsWith(normalizedPrefix);
+}
+
 export function attachAutocomplete(inputEl, endpointBuilder, options = {}) {
   const {
     label = "autocomplete",
@@ -100,7 +109,9 @@ export function attachAutocomplete(inputEl, endpointBuilder, options = {}) {
       if (requestId !== requestCounter) {
         return;
       }
-      const suggestions = normalizeSuggestions(data?.suggestions).slice(0, maxSuggestions);
+      const suggestions = normalizeSuggestions(data?.suggestions)
+        .filter((item) => matchesStrictPrefix(item, value))
+        .slice(0, maxSuggestions);
       console.log(`[suggestions:${label}]`, suggestions);
       renderSuggestions(suggestions, value);
     } catch (err) {

@@ -103,20 +103,43 @@ class DatabaseHandle {
         );
     }
 
+    private function filterByStrictPrefix(array $values, string $prefix): array
+    {
+        $prefixLength = mb_strlen($prefix, 'UTF-8');
+        if ($prefixLength === 0) {
+            return $values;
+        }
+
+        $prefixLower = mb_strtolower($prefix, 'UTF-8');
+
+        return array_values(array_filter($values, function ($value) use ($prefixLength, $prefixLower) {
+            $head = mb_substr($value, 0, $prefixLength, 'UTF-8');
+            return mb_strtolower($head, 'UTF-8') === $prefixLower;
+        }));
+    }
+
     public function getPlayerSuggestionsByPrefix(string $prefix, int $limit = 3): array {
         $safeLimit = max(1, min(10, $limit));
-        $sql = "SELECT nick FROM gracze WHERE nick LIKE :prefix AND aktywny = 1 ORDER BY nick ASC LIMIT {$safeLimit}";
+        $prefixLower = mb_strtolower($prefix, 'UTF-8');
+        $fetchLimit = $safeLimit * 5;
+        $sql = "SELECT nick FROM gracze WHERE LOWER(nick) COLLATE utf8mb4_bin LIKE :prefix AND aktywny = 1 ORDER BY nick ASC LIMIT {$fetchLimit}";
         $stmt = $this->connection->prepare($sql);
-        $stmt->execute(['prefix' => $prefix . '%']);
-        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $stmt->execute(['prefix' => $prefixLower . '%']);
+        $rows = $this->filterByStrictPrefix($stmt->fetchAll(PDO::FETCH_COLUMN), $prefix);
+
+        return array_slice($rows, 0, $safeLimit);
     }
 
     public function getGameSuggestionsByPrefix(string $prefix, int $limit = 3): array {
         $safeLimit = max(1, min(10, $limit));
-        $sql = "SELECT nazwa FROM gry WHERE nazwa LIKE :prefix AND aktywna = 1 ORDER BY nazwa ASC LIMIT {$safeLimit}";
+        $prefixLower = mb_strtolower($prefix, 'UTF-8');
+        $fetchLimit = $safeLimit * 5;
+        $sql = "SELECT nazwa FROM gry WHERE LOWER(nazwa) COLLATE utf8mb4_bin LIKE :prefix AND aktywna = 1 ORDER BY nazwa ASC LIMIT {$fetchLimit}";
         $stmt = $this->connection->prepare($sql);
-        $stmt->execute(['prefix' => $prefix . '%']);
-        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $stmt->execute(['prefix' => $prefixLower . '%']);
+        $rows = $this->filterByStrictPrefix($stmt->fetchAll(PDO::FETCH_COLUMN), $prefix);
+
+        return array_slice($rows, 0, $safeLimit);
     }
 
     private function getStatsScopeColumn(string $scope): string
