@@ -1,7 +1,7 @@
 import { qs, qsa } from "./dom.js";
 import { attachAutocomplete } from "./autocomplete.js";
 import { deleteRequest, getRequest, postJson, putJson } from "./api.js";
-import { normalizeGame, normalizeUser } from "./utils.js";
+import { normalizeGame, normalizeUser, escapeHtml } from "./utils.js";
 
 let players = [];
 let games = [];
@@ -66,7 +66,7 @@ function renderPlayers() {
     ? players.map((player) => `
       <tr>
         <td>${player.id}</td>
-        <td>${player.nick}</td>
+        <td>${escapeHtml(player.nick)}</td>
         <td class="actions-cell">
           <div class="admin-actions">
             <button type="button" class="btn-edit" data-action="edit-player" data-id="${player.id}">Modyfikuj</button>
@@ -83,11 +83,11 @@ function renderGames() {
     ? games.map((game) => `
       <tr>
         <td>${game.id}</td>
-        <td>${game.nazwa}</td>
-        <td>${game.rodzaj}</td>
+        <td>${escapeHtml(game.nazwa)}</td>
+        <td>${escapeHtml(game.rodzaj)}</td>
         <td>${game.min_graczy}</td>
         <td>${game.max_graczy}</td>
-        <td>${game.rodzaj_wygranej}</td>
+        <td>${escapeHtml(game.rodzaj_wygranej)}</td>
         <td class="actions-cell">
           <div class="admin-actions">
             <button type="button" class="btn-edit" data-action="edit-game" data-id="${game.id}">Modyfikuj</button>
@@ -147,7 +147,7 @@ function openPlayerModal(player) {
     `
       <div class="admin-form-field">
         <label class="field-label" for="adminPlayerName">Nick gracza</label>
-        <input type="text" id="adminPlayerName" name="name" placeholder="Nick gracza..." value="${player ? player.nick : ""}" required />
+        <input type="text" id="adminPlayerName" name="name" placeholder="Nick gracza..." value="${player ? escapeHtml(player.nick) : ""}" required />
       </div>
     `,
     "player",
@@ -161,11 +161,11 @@ function openMatchModal(match) {
     `
       <div class="admin-form-field">
         <label class="field-label" for="adminMatchGameName">Nazwa gry</label>
-        <input type="text" id="adminMatchGameName" name="gameName" placeholder="Nazwa gry..." value="${match.game_name}" required />
+        <input type="text" id="adminMatchGameName" name="gameName" placeholder="Nazwa gry..." value="${escapeHtml(match.game_name)}" required />
       </div>
       <div class="admin-form-field">
         <label class="field-label" for="adminMatchWinnerName">Nick zwycięzcy</label>
-        <input type="text" id="adminMatchWinnerName" name="winnerName" placeholder="Nick zwyciezcy..." value="${match.winner_nick}" required />
+        <input type="text" id="adminMatchWinnerName" name="winnerName" placeholder="Nick zwyciezcy..." value="${escapeHtml(match.winner_nick)}" required />
       </div>
       <div class="admin-form-field">
         <label class="field-label" for="adminMatchPlayerCount">Liczba graczy</label>
@@ -221,13 +221,13 @@ function openScoresModal(matchId) {
   activeMatchId = matchId;
   qs("#adminScoresModalTitle").textContent = isOtherWinType ? `Zwyciezca rozgrywki #${match.id}` : `Wyniki rozgrywki #${match.id}`;
   qs("#adminScoresMeta").innerHTML = `
-    <div><strong>Gra:</strong> ${match.game_name}</div>
-    <div><strong>Zwyciezca:</strong> ${match.winner_nick}</div>
+    <div><strong>Gra:</strong> ${escapeHtml(match.game_name)}</div>
+    <div><strong>Zwyciezca:</strong> ${escapeHtml(match.winner_nick)}</div>
     <div><strong>Data:</strong> ${formatDate(match.data)}</div>
   `;
   qs("#adminScoresFields").innerHTML = scores.map((score) => `
     <div class="admin-score-row">
-      <div class="admin-score-name">${score.player_nick}</div>
+      <div class="admin-score-name">${escapeHtml(score.player_nick)}</div>
       ${isOtherWinType ? `
         <label class="winner-radio-label">
           <input type="radio" name="winnerId" value="${score.id_gracza}" ${Number(score.id_gracza) === Number(match.id_zwyciezcy) ? "checked" : ""} required />

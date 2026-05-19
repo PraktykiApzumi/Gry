@@ -1,4 +1,4 @@
-import { toInt } from "./utils.js";
+import { toInt, escapeHtml } from "./utils.js";
 import { getRequest, postJson } from "./api.js";
 import { attachAutocomplete } from "./autocomplete.js";
 
@@ -145,15 +145,15 @@ export function initMatchForm({
       const isOtherWinType = currentWinType === "inna";
       card.innerHTML = `
         <div class="field-label">Gracz ${i + 1}</div>
-        <input type="text" class="player-name" placeholder="Nazwa gracza" value="${player.name || ""}" required>
+        <input type="text" class="player-name" placeholder="Nazwa gracza" value="${escapeHtml(player.name || "")}" required>
         <div class="field-error" aria-live="polite"></div>
         ${isOtherWinType ? `
           <label class="winner-radio-label">
-            <input type="radio" name="winnerName" class="winner-radio" value="${player.name || ""}" ${player.winner ? "checked" : ""}>
+            <input type="radio" name="winnerName" class="winner-radio" value="${escapeHtml(player.name || "")}" ${player.winner ? "checked" : ""}>
             Zwyciezca
           </label>
         ` : `
-          <input type="number" class="player-points" placeholder="Punkty" min="0" value="${player.points || ""}" required>
+          <input type="number" class="player-points" placeholder="Punkty" min="0" value="${escapeHtml(player.points || "")}" required>
         `}
         <div class="field-error" aria-live="polite"></div>
       `;

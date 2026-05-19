@@ -7,17 +7,18 @@ import {
   normalizeUser,
   normalizeGame,
   formatScores,
+  escapeHtml,
 } from "./utils.js";
 
 function renderHistoryRow(type, r, scoresByMatch = {}) {
   const scores = r.scores ?? scoresByMatch[r.id] ?? [];
 
   const base = {
-    date: formatDate(r.match_date || r.data),
+    date: escapeHtml(formatDate(r.match_date || r.data)),
     game: normalizeGame(r.game_name || r.nazwa),
     winner: normalizeUser(r.winner || r.winner_nick),
     player_count: r.player_count ?? r.ilosc_graczy ?? "—",
-    points: r.points_scored ?? "—",
+    points: escapeHtml(String(r.points_scored ?? "—")),
     scores: formatScores(scores),
   };
 
