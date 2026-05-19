@@ -116,7 +116,6 @@ function renderMatches() {
         </td>
         <td class="actions-cell">
           <div class="admin-actions">
-            <button type="button" class="btn-edit" data-action="edit-match" data-id="${match.id}">Modyfikuj</button>
             <button type="button" class="btn-delete" data-action="delete-match" data-id="${match.id}">Usun</button>
           </div>
         </td>
@@ -153,31 +152,6 @@ function openPlayerModal(player) {
     "player",
     player ? player.id : 0
   );
-}
-
-function openMatchModal(match) {
-  openEntityModal(
-    "Modyfikuj rozgrywke",
-    `
-      <div class="admin-form-field">
-        <label class="field-label" for="adminMatchGameName">Nazwa gry</label>
-        <input type="text" id="adminMatchGameName" name="gameName" placeholder="Nazwa gry..." value="${escapeHtml(match.game_name)}" required />
-      </div>
-      <div class="admin-form-field">
-        <label class="field-label" for="adminMatchWinnerName">Nick zwycięzcy</label>
-        <input type="text" id="adminMatchWinnerName" name="winnerName" placeholder="Nick zwyciezcy..." value="${escapeHtml(match.winner_nick)}" required />
-      </div>
-      <div class="admin-form-field">
-        <label class="field-label" for="adminMatchPlayerCount">Liczba graczy</label>
-        <input type="number" id="adminMatchPlayerCount" name="playerCount" min="1" max="20" placeholder="Liczba graczy" value="${match.ilosc_graczy}" required />
-      </div>
-    `,
-    "match",
-    match.id
-  );
-
-  attachAutocomplete(qs('#adminEntityFields [name="gameName"]'), (value) => `api/suggest/game/${encodeURIComponent(value)}`, { label: "admin:game", maxSuggestions: 3 });
-  attachAutocomplete(qs('#adminEntityFields [name="winnerName"]'), (value) => `api/suggest/player/${encodeURIComponent(value)}`, { label: "admin:player", maxSuggestions: 3 });
 }
 
 async function saveEntityModal(event) {
@@ -353,7 +327,6 @@ function bindButtons() {
       });
     }
     if (action === "delete-game") removeRecord("game", id);
-    if (action === "edit-match") openMatchModal(matches.find((item) => item.id === id));
     if (action === "delete-match") removeRecord("match", id);
     if (action === "edit-scores") openScoresModal(id);
   });
