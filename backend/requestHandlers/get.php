@@ -6,23 +6,17 @@ require_once __DIR__ . '/helpers/validation.php';
 function getStats($params)
 {
     $scope = $params['scope'] ?? '';
-    $filter = $params['filter'] ?? '';
     $name = validateRouteNameParam($params);
 
     if (!in_array($scope, ['game', 'type'], true)) {
         errorResponse('Niepoprawny zakres statystyk.', 400, ['scope' => 'Dozwolone: game, type.']);
     }
 
-    if (!in_array($filter, ['points', 'wins', 'played'], true)) {
-        errorResponse('Niepoprawny filtr statystyk.', 400, ['filter' => 'Dozwolone: points, wins, played.']);
-    }
-
     jsonResponse([
         'ok' => true,
         'scope' => $scope,
         'name' => $name,
-        'filter' => $filter,
-        'data' => dbHandle()->getLeaderboard($scope, $name, $filter),
+        'data' => dbHandle()->getLeaderboard($scope, $name),
     ]);
 }
 

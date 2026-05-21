@@ -4,6 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Gry - System wyników</title>
+  <link href="https://cdn.jsdelivr.net/gh/tofsjonas/sortable@latest/sortable-base.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="kolorki.css"/>
 </head>
 <body>
@@ -38,11 +39,6 @@
   <div id="statsView" class="view">
     <h2>Statystyki</h2>
     <div class="filtry">
-      <button type="button" class="filter-btn active" data-filter="points">Najwięcej punktów</button>
-      <button type="button" class="filter-btn" data-filter="wins">Najwięcej zwycięstw</button>
-      <button type="button" class="filter-btn" data-filter="played">Najwięcej gier</button>
-    </div>
-    <div class="filtry">
       <button type="button" class="scope-btn active" data-scope="game">Dla gry</button>
       <button type="button" class="scope-btn" data-scope="type">Dla typu gry</button>
     </div>
@@ -57,7 +53,7 @@
       <button type="submit" class="btn-dodaj">Szukaj</button>
     </form>
     <div class="table-wrapper">
-      <table>
+      <table id="statsTable" class="sortable n-last">
         <thead>
           <tr>
             <th>Gracz</th>
@@ -65,7 +61,7 @@
             <th>Punkty</th>
             <th>Śr. pkt</th>
             <th>Zwycięstwa</th>
-            <th>Ilość gier</th>
+            <th id="statsPlayedHeader">Ilość gier</th>
             <th>Winrate</th>
           </tr>
         </thead>
@@ -94,14 +90,14 @@
         <button type="button" class="btn-dodaj" id="loadRecentBtn" style="width:auto; padding: 9px 24px;">Załaduj ostatnie rozgrywki</button>
       </div>
       <div class="table-wrapper">
-        <table>
+        <table class="sortable n-last">
           <thead>
             <tr>
               <th>Data</th>
               <th>Gra</th>
               <th>Zwycięzca</th>
               <th>Graczy</th>
-              <th>Wyniki</th>
+              <th class="no-sort">Wyniki</th>
             </tr>
           </thead>
           <tbody id="recentHistoryBody">
@@ -120,13 +116,13 @@
         <button type="submit" class="btn-dodaj">Szukaj</button>
       </form>
       <div class="table-wrapper">
-        <table>
+        <table class="sortable n-last">
           <thead>
             <tr>
               <th>Data</th>
               <th>Zwycięzca</th>
               <th>Graczy</th>
-              <th>Wyniki</th>
+              <th class="no-sort">Wyniki</th>
             </tr>
           </thead>
           <tbody id="gameHistoryBody">
@@ -143,7 +139,7 @@
         <button type="submit" class="btn-dodaj">Szukaj</button>
       </form>
       <div class="table-wrapper">
-        <table>
+        <table class="sortable n-last">
           <thead>
             <tr>
               <th>Data</th>
@@ -151,7 +147,7 @@
               <th>Zwycięzca</th>
               <th>Punkty</th>
               <th>Graczy</th>
-              <th>Wyniki</th>
+              <th class="no-sort">Wyniki</th>
             </tr>
           </thead>
           <tbody id="playerHistoryBody">
@@ -176,12 +172,12 @@
         <button type="button" class="btn-dodaj" id="addPlayerBtn">Dodaj gracza</button>
       </div>
       <div class="table-wrapper admin-table-wrapper">
-        <table class="admin-table">
+        <table class="admin-table sortable n-last">
           <thead>
             <tr>
               <th>ID</th>
               <th>Nick</th>
-              <th>Akcje</th>
+              <th class="no-sort">Akcje</th>
             </tr>
           </thead>
           <tbody id="adminPlayersBody"></tbody>
@@ -194,7 +190,7 @@
         <button type="button" class="btn-dodaj" id="addGameBtn">Dodaj gre</button>
       </div>
       <div class="table-wrapper admin-table-wrapper">
-        <table class="admin-table admin-games-table">
+        <table class="admin-table admin-games-table sortable n-last">
           <thead>
             <tr>
               <th>ID</th>
@@ -203,7 +199,7 @@
               <th>Min</th>
               <th>Max</th>
               <th>Wygrana</th>
-              <th>Akcje</th>
+              <th class="no-sort">Akcje</th>
             </tr>
           </thead>
           <tbody id="adminGamesBody"></tbody>
@@ -216,7 +212,7 @@
         <button type="button" class="btn-dodaj" id="addMatchBtn">Dodaj rozgrywke</button>
       </div>
       <div class="table-wrapper admin-table-wrapper">
-        <table class="admin-table admin-matches-table">
+        <table class="admin-table admin-matches-table sortable n-last">
           <thead>
             <tr>
               <th>ID</th>
@@ -224,8 +220,8 @@
               <th>Gra</th>
               <th>Zwyciezca</th>
               <th>Graczy</th>
-              <th>Wyniki</th>
-              <th>Akcje</th>
+              <th class="no-sort">Wyniki</th>
+              <th class="no-sort">Akcje</th>
             </tr>
           </thead>
           <tbody id="adminMatchesBody"></tbody>
@@ -292,6 +288,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/gh/tofsjonas/sortable@latest/dist/sortable.auto.min.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>

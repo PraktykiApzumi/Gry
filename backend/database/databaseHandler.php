@@ -147,17 +147,6 @@ class DatabaseHandle {
         return $scope === 'type' ? 'gr.rodzaj' : 'gr.nazwa';
     }
 
-    private function getStatsOrderBy(string $sort): string
-    {
-        $orderBy = [
-            'wins' => 'wins DESC, total_points DESC',
-            'played' => 'played_games DESC, wins DESC',
-            'points' => 'total_points DESC, wins DESC',
-        ];
-
-        return $orderBy[$sort] ?? $orderBy['points'];
-    }
-
     private function sqlEffectiveWinnerId(string $matchAlias = 'r', string $gameAlias = 'gr'): string
     {
         return "CASE
@@ -180,10 +169,9 @@ class DatabaseHandle {
         END";
     }
 
-    public function getLeaderboard(string $scope, string $value, string $sort): array
+    public function getLeaderboard(string $scope, string $value): array
     {
         $scopeColumn = $this->getStatsScopeColumn($scope);
-        $orderBy = $this->getStatsOrderBy($sort);
         $effectiveWinnerId = $this->sqlEffectiveWinnerId();
 
         $sql = "
@@ -205,7 +193,6 @@ class DatabaseHandle {
           AND g.aktywny = 1
           AND gr.aktywna = 1
         GROUP BY g.id, g.nick
-        ORDER BY {$orderBy}
     ";
 
         $stmt = $this->connection->prepare($sql);

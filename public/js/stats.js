@@ -4,39 +4,62 @@ import { attachAutocomplete } from "./autocomplete.js";
 import { escapeHtml } from "./utils.js";
 
 function emptyStatsRow(tableBody, message = "Brak danych") {
-  tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#999;">${message}</td></tr>`;
+  const row = document.createElement("tr");
+  const cell = document.createElement("td");
+  cell.colSpan = 7;
+  cell.style.textAlign = "center";
+  cell.style.color = "#999";
+  cell.textContent = message;
+  row.append(cell);
+  tableBody.replaceChildren(row);
+}
+
+function resetStatsSortState(table) {
+  table.querySelectorAll("th[aria-sort]").forEach((header) => {
+    header.removeAttribute("aria-sort");
+  });
 }
 
 function renderStatsRows(rows, statsValue) {
   return rows.map((row) => {
     const avg = row.average_points ?? "-";
-    const avgText = Number.isFinite(Number(avg)) ? Number(avg).toFixed(1) : avg;
+    const avgValue = Number(avg);
+    const avgText = Number.isFinite(avgValue) ? avgValue.toFixed(1) : avg;
     const playedGames = Number(row.played_games ?? 0);
     const wins = Number(row.wins ?? 0);
-    const winrate = playedGames > 0 ? `${((wins / playedGames) * 100).toFixed(1)}%` : "-";
+    const totalPoints = Number(row.total_points ?? 0);
+    const winrateValue = playedGames > 0 ? (wins / playedGames) * 100 : null;
+    const winrate = winrateValue === null ? "-" : `${winrateValue.toFixed(1)}%`;
 
     return `
       <tr>
         <td>${escapeHtml(row.nick)}</td>
         <td>${escapeHtml(statsValue)}</td>
-        <td>${row.total_points ?? 0}</td>
-        <td>${avgText}</td>
-        <td>${wins}</td>
-        <td>${playedGames}</td>
-        <td>${winrate}</td>
+        <td data-sort="${totalPoints}">${totalPoints}</td>
+        <td data-sort="${Number.isFinite(avgValue) ? avgValue : ""}">${avgText}</td>
+        <td data-sort="${wins}">${wins}</td>
+        <td data-sort="${playedGames}">${playedGames}</td>
+        <td data-sort="${winrateValue ?? ""}">${winrate}</td>
       </tr>`;
   }).join("");
+}
+
+function sortStatsRowsByPlayedGames(rows) {
+  return [...rows].sort((a, b) => {
+    const playedDiff = Number(b.played_games ?? 0) - Number(a.played_games ?? 0);
+    if (playedDiff !== 0) return playedDiff;
+    return Number(b.wins ?? 0) - Number(a.wins ?? 0);
+  });
 }
 
 export function initStats() {
   const statsForm = qs("#statsForm");
   const statsNameInput = qs("#statsName");
   const statsTypeInput = qs("#statsType");
+  const statsTable = qs("#statsTable");
   const tableBody = qs("#tableBody");
-  const filterButtons = qsa(".filter-btn");
   const scopeButtons = qsa(".scope-btn");
 
-  let currentFilter = "points";
   let currentStatsScope = "game";
 
   attachAutocomplete(
@@ -58,7 +81,7 @@ export function initStats() {
       return;
     }
 
-    const endpoint = `api/stats/${currentStatsScope}/${currentFilter}/${encodeURIComponent(statsValue)}`;
+    const endpoint = `api/stats/${currentStatsScope}/${encodeURIComponent(statsValue)}`;
 
     try {
       const statsData = await getRequest(endpoint);
@@ -69,7 +92,8 @@ export function initStats() {
         return;
       }
 
-      tableBody.innerHTML = renderStatsRows(rows, statsValue);
+      tableBody.innerHTML = renderStatsRows(sortStatsRowsByPlayedGames(rows), statsValue);
+      resetStatsSortState(statsTable);
     } catch (err) {
       if (err instanceof Error && err.message) {
         alert(err.message);
@@ -78,15 +102,6 @@ export function initStats() {
       alert("Nie mozna teraz pobrac statystyk.");
     }
   }
-
-  filterButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      currentFilter = button.dataset.filter;
-      filterButtons.forEach((item) => {
-        item.classList.toggle("active", item === button);
-      });
-    });
-  });
 
   scopeButtons.forEach((button) => {
     button.addEventListener("click", () => {
@@ -99,6 +114,7 @@ export function initStats() {
       statsNameInput.required = currentStatsScope === "game";
       statsTypeInput.style.display = currentStatsScope === "type" ? "block" : "none";
       statsTypeInput.required = currentStatsScope === "type";
+      resetStatsSortState(statsTable);
       emptyStatsRow(tableBody);
     });
   });
