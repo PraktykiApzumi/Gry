@@ -721,3 +721,24 @@ tr:hover td {
     margin-left: 0;
   }
 }
+/* ── Sortowanie tabeli statystyk ── */
+#statsTable thead th {
+  user-select: none;
+  white-space: nowrap;
+}
+
+#statsTable thead th::after {
+  content: " ⇅";
+  opacity: 0.3;
+  font-size: 0.8em;
+}
+
+#statsTable thead th.sort-asc::after {
+  content: " ▲";
+  opacity: 1;
+}
+
+#statsTable thead th.sort-desc::after {
+  content: " ▼";
+  opacity: 1;
+}
