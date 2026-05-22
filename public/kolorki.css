@@ -359,6 +359,32 @@ td {
 tr:hover td {
   background: #f0f7ff;
 }
+.panel-link {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: #1c6ea4;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: rgba(28, 110, 164, 0.35);
+  text-underline-offset: 2px;
+}
+
+.panel-link:hover,
+.panel-link:focus-visible {
+  color: #2980b9;
+  text-decoration-color: currentColor;
+}
+
+.panel-link:focus-visible {
+  outline: 2px solid rgba(52, 152, 219, 0.35);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
 .filtr-btn,
 .scope-btn {
   padding: 7px 16px;
