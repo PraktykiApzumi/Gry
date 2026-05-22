@@ -2,34 +2,29 @@ import { qs, qsa } from "./dom.js";
 import { getRequest } from "./api.js";
 import { attachAutocomplete } from "./autocomplete.js";
 import { escapeHtml } from "./utils.js";
+import { createPaginator, renderPaginationControls } from "./pagination.js";
 
 function emptyStatsRow(tableBody, message = "Brak danych") {
-  const row = document.createElement("tr");
+  const row  = document.createElement("tr");
   const cell = document.createElement("td");
   cell.colSpan = 7;
   cell.style.textAlign = "center";
   cell.style.color = "#999";
   cell.textContent = message;
-  row.append(cell);
   tableBody.replaceChildren(row);
-}
-
-function resetStatsSortState(table) {
-  table.querySelectorAll("th[aria-sort]").forEach((header) => {
-    header.removeAttribute("aria-sort");
-  });
+  row.append(cell);
 }
 
 function renderStatsRows(rows, statsValue) {
   return rows.map((row) => {
-    const avg = row.average_points ?? "-";
-    const avgValue = Number(avg);
-    const avgText = Number.isFinite(avgValue) ? avgValue.toFixed(1) : avg;
+    const avg        = row.average_points ?? "-";
+    const avgValue   = Number(avg);
+    const avgText    = Number.isFinite(avgValue) ? avgValue.toFixed(1) : avg;
     const playedGames = Number(row.played_games ?? 0);
-    const wins = Number(row.wins ?? 0);
+    const wins        = Number(row.wins ?? 0);
     const totalPoints = Number(row.total_points ?? 0);
     const winrateValue = playedGames > 0 ? (wins / playedGames) * 100 : null;
-    const winrate = winrateValue === null ? "-" : `${winrateValue.toFixed(1)}%`;
+    const winrate      = winrateValue === null ? "-" : `${winrateValue.toFixed(1)}%`;
 
     return `
       <tr>
@@ -44,6 +39,42 @@ function renderStatsRows(rows, statsValue) {
   }).join("");
 }
 
+const SORT_COLUMNS = [
+  null,                                    
+  null,                                    
+  { key: "total_points",   type: "num" },  
+  { key: "average_points", type: "num" }, 
+  { key: "wins",           type: "num" }, 
+  { key: "played_games",   type: "num" }, 
+  { key: "_winrate",       type: "num" }, 
+];
+
+function getRowSortValue(row, colIndex) {
+  if (colIndex === 0) return (row.nick ?? "").toLowerCase();
+  if (colIndex === 1) return "";
+  if (colIndex === 6) {
+    const played = Number(row.played_games ?? 0);
+    return played > 0 ? Number(row.wins ?? 0) / played : -1;
+  }
+  const col = SORT_COLUMNS[colIndex];
+  if (!col) return 0;
+  return Number(row[col.key] ?? 0);
+}
+
+function sortRows(rows, colIndex, direction) {
+  return [...rows].sort((a, b) => {
+    const va = getRowSortValue(a, colIndex);
+    const vb = getRowSortValue(b, colIndex);
+    let cmp = 0;
+    if (typeof va === "string") {
+      cmp = va.localeCompare(vb, "pl");
+    } else {
+      cmp = va - vb;
+    }
+    return direction === "asc" ? cmp : -cmp;
+  });
+}
+
 function sortStatsRowsByPlayedGames(rows) {
   return [...rows].sort((a, b) => {
     const playedDiff = Number(b.played_games ?? 0) - Number(a.played_games ?? 0);
@@ -53,47 +84,107 @@ function sortStatsRowsByPlayedGames(rows) {
 }
 
 export function initStats() {
-  const statsForm = qs("#statsForm");
+  const statsForm      = qs("#statsForm");
   const statsNameInput = qs("#statsName");
   const statsTypeInput = qs("#statsType");
-  const statsTable = qs("#statsTable");
-  const tableBody = qs("#tableBody");
-  const scopeButtons = qsa(".scope-btn");
+  const statsTable     = qs("#statsTable");
+  const tableBody      = qs("#tableBody");
+  const scopeButtons   = qsa(".scope-btn");
 
   let currentStatsScope = "game";
+  let currentStatsValue = "";
+  let allRows = [];
+  let sortColIndex  = 5;
+  let sortDirection = "desc";
+
+  const statsPaginator = createPaginator();
 
   attachAutocomplete(
     statsNameInput,
     (value) => `api/suggest/game/${encodeURIComponent(value)}`,
-    {
-      label: "game:stats",
-      maxSuggestions: 3
-    }
+    { label: "game:stats", maxSuggestions: 3 }
   );
 
+  const headers = statsTable.querySelectorAll("thead th");
+  headers.forEach((th, idx) => {
+    if (idx === 1) return;
+    th.style.cursor = "pointer";
+    th.addEventListener("click", () => {
+      if (!allRows.length) return;
+
+      if (sortColIndex === idx) {
+        sortDirection = sortDirection === "asc" ? "desc" : "asc";
+      } else {
+        sortColIndex = idx;
+        sortDirection = idx === 0 ? "asc" : "desc";
+      }
+
+      applySort();
+    });
+  });
+
+  function updateSortIndicators() {
+    headers.forEach((th, idx) => {
+      th.removeAttribute("aria-sort");
+      th.classList.remove("sort-asc", "sort-desc");
+    });
+    const activeTh = headers[sortColIndex];
+    if (activeTh) {
+      activeTh.setAttribute("aria-sort", sortDirection === "asc" ? "ascending" : "descending");
+      activeTh.classList.add(sortDirection === "asc" ? "sort-asc" : "sort-desc");
+    }
+  }
+
+  function applySort() {
+    const sorted = sortRows(allRows, sortColIndex, sortDirection);
+    statsPaginator.setItems(sorted);   
+    updateSortIndicators();
+    renderStatsPage();
+  }
+
+  function renderStatsPage() {
+    const page = statsPaginator.getPage();
+    if (!page.length) {
+      emptyStatsRow(tableBody);
+    } else {
+      tableBody.innerHTML = renderStatsRows(page, currentStatsValue);
+    }
+    renderPaginationControls(statsPaginator, qs("#statsPagination"), renderStatsPage);
+  }
+
   async function loadStats() {
-    const statsValue = currentStatsScope === "type"
+    currentStatsValue = currentStatsScope === "type"
       ? statsTypeInput.value.trim()
       : statsNameInput.value.trim();
 
-    if (statsValue.length < 2 || statsValue.length > 100) {
-      alert(currentStatsScope === "type" ? "Wybierz typ gry." : "Nazwa gry musi miec od 2 do 100 znakow.");
+    if (currentStatsValue.length < 2 || currentStatsValue.length > 100) {
+      alert(currentStatsScope === "type"
+        ? "Wybierz typ gry."
+        : "Nazwa gry musi miec od 2 do 100 znakow.");
       return;
     }
 
-    const endpoint = `api/stats/${currentStatsScope}/${encodeURIComponent(statsValue)}`;
+    const endpoint = `api/stats/${currentStatsScope}/${encodeURIComponent(currentStatsValue)}`;
 
     try {
       const statsData = await getRequest(endpoint);
       const rows = statsData.data;
 
       if (!rows || rows.length === 0) {
+        allRows = [];
         emptyStatsRow(tableBody);
+        statsPaginator.setItems([]);
+        renderPaginationControls(statsPaginator, qs("#statsPagination"), renderStatsPage);
         return;
       }
 
-      tableBody.innerHTML = renderStatsRows(sortStatsRowsByPlayedGames(rows), statsValue);
-      resetStatsSortState(statsTable);
+      sortColIndex  = 5;
+      sortDirection = "desc";
+      allRows = sortStatsRowsByPlayedGames(rows);
+
+      statsPaginator.setItems(allRows);
+      updateSortIndicators();
+      renderStatsPage();
     } catch (err) {
       if (err instanceof Error && err.message) {
         alert(err.message);
@@ -111,11 +202,19 @@ export function initStats() {
       });
 
       statsNameInput.style.display = currentStatsScope === "game" ? "block" : "none";
-      statsNameInput.required = currentStatsScope === "game";
+      statsNameInput.required      = currentStatsScope === "game";
       statsTypeInput.style.display = currentStatsScope === "type" ? "block" : "none";
-      statsTypeInput.required = currentStatsScope === "type";
-      resetStatsSortState(statsTable);
+      statsTypeInput.required      = currentStatsScope === "type";
+
+      allRows = [];
+      statsPaginator.setItems([]);
       emptyStatsRow(tableBody);
+      headers.forEach((th) => {
+        th.removeAttribute("aria-sort");
+        th.classList.remove("sort-asc", "sort-desc");
+      });
+      const paginationEl = qs("#statsPagination");
+      if (paginationEl) paginationEl.innerHTML = "";
     });
   });
 

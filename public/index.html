@@ -53,7 +53,7 @@
       <button type="submit" class="btn-dodaj">Szukaj</button>
     </form>
     <div class="table-wrapper">
-      <table id="statsTable" class="sortable n-last">
+      <table id="statsTable" class="n-last stats-sortable">
         <thead>
           <tr>
             <th>Gracz</th>
@@ -72,6 +72,7 @@
         </tbody>
       </table>
     </div>
+    <div id="statsPagination"></div>
   </div>
 
   <!-- WIDOK: Historia -->
@@ -107,6 +108,7 @@
           </tbody>
         </table>
       </div>
+      <div id="recentHistoryPagination"></div>
     </div>
 
     <!-- Historia wg gry -->
@@ -130,6 +132,7 @@
           </tbody>
         </table>
       </div>
+      <div id="gameHistoryPagination"></div>
     </div>
 
     <!-- Historia wg gracza -->
@@ -155,6 +158,7 @@
           </tbody>
         </table>
       </div>
+      <div id="playerHistoryPagination"></div>
     </div>
   </div>
 
@@ -183,6 +187,7 @@
           <tbody id="adminPlayersBody"></tbody>
         </table>
       </div>
+      <div id="adminPlayersPagination"></div>
     </div>
 
     <div id="adminGamesPanel" class="admin-panel" data-admin-panel="games">
@@ -205,6 +210,7 @@
           <tbody id="adminGamesBody"></tbody>
         </table>
       </div>
+      <div id="adminGamesPagination"></div>
     </div>
 
     <div id="adminMatchesPanel" class="admin-panel" data-admin-panel="matches">
@@ -227,6 +233,7 @@
           <tbody id="adminMatchesBody"></tbody>
         </table>
       </div>
+      <div id="adminMatchesPagination"></div>
     </div>
   </div>
 

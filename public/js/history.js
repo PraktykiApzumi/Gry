@@ -9,20 +9,21 @@ import {
   formatScores,
   escapeHtml,
 } from "./utils.js";
+import { createPaginator, renderPaginationControls } from "./pagination.js";
 
 function renderHistoryRow(type, r, scoresByMatch = {}) {
-  const scores = r.scores ?? scoresByMatch[r.id] ?? [];
+  const scores  = r.scores ?? scoresByMatch[r.id] ?? [];
   const rawDate = r.match_date || r.data;
   const dateSort = rawDate ? new Date(rawDate).getTime() : "";
 
   const base = {
-    date: escapeHtml(formatDate(rawDate)),
-    dateSort: Number.isFinite(dateSort) ? dateSort : "",
-    game: normalizeGame(r.game_name || r.nazwa),
-    winner: normalizeUser(r.winner || r.winner_nick),
+    date:         escapeHtml(formatDate(rawDate)),
+    dateSort:     Number.isFinite(dateSort) ? dateSort : "",
+    game:         normalizeGame(r.game_name || r.nazwa),
+    winner:       normalizeUser(r.winner || r.winner_nick),
     player_count: Number(r.player_count ?? r.ilosc_graczy ?? 0),
-    points: r.points_scored ?? "—",
-    scores: formatScores(scores),
+    points:       r.points_scored ?? "—",
+    scores:       formatScores(scores),
   };
 
   switch (type) {
@@ -67,35 +68,35 @@ async function attachScoresToRows(rows) {
   return Promise.all(
     rows.map(async (row) => {
       const response = await getRequest(`api/admin/scores/${row.id}`);
-      return {
-        ...row,
-        scores: response?.data || [],
-      };
-    }),
+      return { ...row, scores: response?.data || [] };
+    })
   );
 }
 
 export function initHistory() {
   const historyTabBtns = qsa(".history-tab-btn");
-  const historyPanels = qsa(".history-panel");
+  const historyPanels  = qsa(".history-panel");
 
   const recentBody = qs("#recentHistoryBody");
-  const gameBody = qs("#gameHistoryBody");
+  const gameBody   = qs("#gameHistoryBody");
   const playerBody = qs("#playerHistoryBody");
 
-  const loadRecentBtn = qs("#loadRecentBtn");
-
-  const historyGameForm = qs("#historyGameForm");
-  const historyPlayerForm = qs("#historyPlayerForm");
-
-  const historyGameNameInput = qs("#historyGameName");
+  const loadRecentBtn       = qs("#loadRecentBtn");
+  const historyGameForm     = qs("#historyGameForm");
+  const historyPlayerForm   = qs("#historyPlayerForm");
+  const historyGameNameInput   = qs("#historyGameName");
   const historyPlayerNameInput = qs("#historyPlayerName");
+
+  // Paginatory — jeden na każdą zakładkę historii
+  const recentPaginator = createPaginator();
+  const gamePaginator   = createPaginator();
+  const playerPaginator = createPaginator();
 
   if (historyGameNameInput) {
     attachAutocomplete(
       historyGameNameInput,
       (value) => `api/suggest/game/${encodeURIComponent(value)}`,
-      { label: "game:history", maxSuggestions: 3 },
+      { label: "game:history", maxSuggestions: 3 }
     );
   }
 
@@ -103,23 +104,25 @@ export function initHistory() {
     attachAutocomplete(
       historyPlayerNameInput,
       (value) => `api/suggest/player/${encodeURIComponent(value)}`,
-      { label: "player:history", maxSuggestions: 3 },
+      { label: "player:history", maxSuggestions: 3 }
     );
   }
 
   historyTabBtns.forEach((btn) => {
     btn.addEventListener("click", () => {
-      const target = btn.dataset.history;
+      const target  = btn.dataset.history;
       const panelId = `history${target.charAt(0).toUpperCase()}${target.slice(1)}`;
-
-      historyTabBtns.forEach((b) =>
-        b.classList.toggle("active", b === btn),
-      );
-      historyPanels.forEach((p) =>
-        p.classList.toggle("active", p.id === panelId),
-      );
+      historyTabBtns.forEach((b) => b.classList.toggle("active", b === btn));
+      historyPanels.forEach((p) => p.classList.toggle("active", p.id === panelId));
     });
   });
+
+  // --- RECENT ---
+  function renderRecentPage() {
+    const page = recentPaginator.getPage();
+    recentBody.innerHTML = page.map((r) => renderHistoryRow("recent", r)).join("");
+    renderPaginationControls(recentPaginator, qs("#recentHistoryPagination"), renderRecentPage);
+  }
 
   if (loadRecentBtn) {
     loadRecentBtn.addEventListener("click", async () => {
@@ -134,9 +137,8 @@ export function initHistory() {
           return;
         }
 
-        recentBody.innerHTML = rows
-          .map((r) => renderHistoryRow("recent", r))
-          .join("");
+        recentPaginator.setItems(rows);
+        renderRecentPage();
       } catch (err) {
         recentBody.innerHTML = emptyRow(5, "Blad pobierania danych");
         console.error("[history/recent]", err);
@@ -144,20 +146,23 @@ export function initHistory() {
     });
   }
 
+  // --- GAME ---
+  function renderGamePage() {
+    const page = gamePaginator.getPage();
+    gameBody.innerHTML = page.map((r) => renderHistoryRow("game", r)).join("");
+    renderPaginationControls(gamePaginator, qs("#gameHistoryPagination"), renderGamePage);
+  }
+
   if (historyGameForm) {
     historyGameForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-
       const name = historyGameNameInput?.value.trim();
       if (!name) return;
 
       gameBody.innerHTML = emptyRow(4, "Ladowanie...");
 
       try {
-        const data = await getRequest(
-          `api/history/game/${encodeURIComponent(name)}`,
-        );
-
+        const data = await getRequest(`api/history/game/${encodeURIComponent(name)}`);
         const rows = await attachScoresToRows(data?.history ?? []);
 
         if (!rows.length) {
@@ -165,9 +170,8 @@ export function initHistory() {
           return;
         }
 
-        gameBody.innerHTML = rows
-          .map((r) => renderHistoryRow("game", r))
-          .join("");
+        gamePaginator.setItems(rows);
+        renderGamePage();
       } catch (err) {
         gameBody.innerHTML = emptyRow(4, "Blad pobierania danych");
         console.error("[history/game]", err);
@@ -175,33 +179,32 @@ export function initHistory() {
     });
   }
 
+  // --- PLAYER ---
+  function renderPlayerPage() {
+    const page = playerPaginator.getPage();
+    playerBody.innerHTML = page.map((r) => renderHistoryRow("player", r)).join("");
+    renderPaginationControls(playerPaginator, qs("#playerHistoryPagination"), renderPlayerPage);
+  }
+
   if (historyPlayerForm) {
     historyPlayerForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-
       const name = historyPlayerNameInput?.value.trim();
       if (!name) return;
 
       playerBody.innerHTML = emptyRow(6, "Ladowanie...");
 
       try {
-        const data = await getRequest(
-          `api/history/player/${encodeURIComponent(name)}`,
-        );
-
+        const data = await getRequest(`api/history/player/${encodeURIComponent(name)}`);
         const rows = await attachScoresToRows(data?.history ?? []);
 
         if (!rows.length) {
-          playerBody.innerHTML = emptyRow(
-            6,
-            "Brak rozgrywek dla tego gracza",
-          );
+          playerBody.innerHTML = emptyRow(6, "Brak rozgrywek dla tego gracza");
           return;
         }
 
-        playerBody.innerHTML = rows
-          .map((r) => renderHistoryRow("player", r))
-          .join("");
+        playerPaginator.setItems(rows);
+        renderPlayerPage();
       } catch (err) {
         playerBody.innerHTML = emptyRow(6, "Blad pobierania danych");
         console.error("[history/player]", err);

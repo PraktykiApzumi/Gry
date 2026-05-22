@@ -653,3 +653,92 @@ tr:hover td {
     width: 100%;
   }
 }
+
+/* ===== PAGINACJA ===== */
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0 4px;
+}
+
+.pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.pagination-btn {
+  padding: 5px 11px;
+  border: 1px solid #555;
+  background: #2a2a2a;
+  color: #ddd;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.15s, color 0.15s;
+  min-width: 34px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #3a3a3a;
+  color: #fff;
+}
+
+.pagination-btn.active {
+  background: #5b8dee;
+  color: #fff;
+  border-color: #5b8dee;
+  font-weight: 600;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.pagination-ellipsis {
+  color: #888;
+  padding: 0 4px;
+  font-size: 0.85rem;
+}
+
+.pagination-info {
+  color: #888;
+  font-size: 0.8rem;
+  margin-left: 6px;
+}
+
+@media (max-width: 600px) {
+  .pagination-controls {
+    justify-content: center;
+  }
+  .pagination-info {
+    width: 100%;
+    text-align: center;
+    margin-left: 0;
+  }
+}
+/* ── Sortowanie tabeli statystyk ── */
+#statsTable thead th {
+  user-select: none;
+  white-space: nowrap;
+}
+
+#statsTable thead th::after {
+  content: " ⇅";
+  opacity: 0.3;
+  font-size: 0.8em;
+}
+
+#statsTable thead th.sort-asc::after {
+  content: " ▲";
+  opacity: 1;
+}
+
+#statsTable thead th.sort-desc::after {
+  content: " ▼";
+  opacity: 1;
+}
