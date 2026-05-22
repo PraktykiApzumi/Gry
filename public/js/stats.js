@@ -39,15 +39,14 @@ function renderStatsRows(rows, statsValue) {
   }).join("");
 }
 
-// Kolumny: index => klucz w danych, kierunek domyślny ("desc" = większe wyżej)
 const SORT_COLUMNS = [
-  null,                                    // 0: Gracz – sortowanie tekstowe
-  null,                                    // 1: Zakres – tekstowe
-  { key: "total_points",   type: "num" },  // 2: Punkty
-  { key: "average_points", type: "num" },  // 3: Śr. pkt
-  { key: "wins",           type: "num" },  // 4: Zwycięstwa
-  { key: "played_games",   type: "num" },  // 5: Ilość gier
-  { key: "_winrate",       type: "num" },  // 6: Winrate (wyliczany)
+  null,                                    
+  null,                                    
+  { key: "total_points",   type: "num" },  
+  { key: "average_points", type: "num" }, 
+  { key: "wins",           type: "num" }, 
+  { key: "played_games",   type: "num" }, 
+  { key: "_winrate",       type: "num" }, 
 ];
 
 function getRowSortValue(row, colIndex) {
@@ -94,8 +93,8 @@ export function initStats() {
 
   let currentStatsScope = "game";
   let currentStatsValue = "";
-  let allRows = [];             // pełna, posortowana lista wierszy
-  let sortColIndex  = 5;        // domyślnie: Ilość gier
+  let allRows = [];
+  let sortColIndex  = 5;
   let sortDirection = "desc";
 
   const statsPaginator = createPaginator();
@@ -106,10 +105,8 @@ export function initStats() {
     { label: "game:stats", maxSuggestions: 3 }
   );
 
-  // --- Nagłówki tabeli: dodaj obsługę kliknięcia ---
   const headers = statsTable.querySelectorAll("thead th");
   headers.forEach((th, idx) => {
-    // Tylko kolumny z danymi (nie Zakres)
     if (idx === 1) return;
     th.style.cursor = "pointer";
     th.addEventListener("click", () => {
@@ -119,7 +116,6 @@ export function initStats() {
         sortDirection = sortDirection === "asc" ? "desc" : "asc";
       } else {
         sortColIndex = idx;
-        // Tekstowe (Gracz) domyślnie rosnąco, liczbowe malejąco
         sortDirection = idx === 0 ? "asc" : "desc";
       }
 
@@ -141,7 +137,7 @@ export function initStats() {
 
   function applySort() {
     const sorted = sortRows(allRows, sortColIndex, sortDirection);
-    statsPaginator.setItems(sorted);   // resetuje do strony 1
+    statsPaginator.setItems(sorted);   
     updateSortIndicators();
     renderStatsPage();
   }
@@ -182,7 +178,6 @@ export function initStats() {
         return;
       }
 
-      // Domyślne sortowanie po załadowaniu: Ilość gier malejąco
       sortColIndex  = 5;
       sortDirection = "desc";
       allRows = sortStatsRowsByPlayedGames(rows);

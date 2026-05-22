@@ -1,10 +1,5 @@
 const DEFAULT_PAGE_SIZE = 20;
 
-/**
- * Tworzy obiekt paginatora dla podanej tablicy rekordów.
- * @param {Array} items - wszystkie rekordy
- * @param {number} pageSize - rozmiar strony (domyślnie 20)
- */
 export function createPaginator(items = [], pageSize = DEFAULT_PAGE_SIZE) {
   let currentPage = 1;
   let currentItems = items;
@@ -14,13 +9,11 @@ export function createPaginator(items = [], pageSize = DEFAULT_PAGE_SIZE) {
   }
 
   return {
-    /** Podmienia dane (np. po odświeżeniu) i resetuje do strony 1 */
     setItems(newItems) {
       currentItems = newItems ?? [];
       currentPage = 1;
     },
 
-    /** Zwraca rekordy dla bieżącej strony */
     getPage(page = currentPage) {
       const p = Math.min(Math.max(1, page), totalPages());
       const start = (p - 1) * pageSize;
@@ -39,13 +32,6 @@ export function createPaginator(items = [], pageSize = DEFAULT_PAGE_SIZE) {
   };
 }
 
-/**
- * Renderuje kontrolki stronicowania w podanym kontenerze.
- *
- * @param {object}   paginator        - obiekt z createPaginator
- * @param {Element}  container        - element DOM, w którym pojawią się przyciski
- * @param {Function} onPageChange     - callback wywoływany po zmianie strony
- */
 export function renderPaginationControls(paginator, container, onPageChange) {
   if (!container) return;
 
@@ -58,7 +44,6 @@ export function renderPaginationControls(paginator, container, onPageChange) {
     return;
   }
 
-  // Jakie numery stron pokazać (max 7 przycisków + wielokropki)
   function pageNumbers() {
     if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
 
