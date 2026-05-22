@@ -37,6 +37,11 @@ function formatDate(value) {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString("pl-PL");
 }
 
+function dateSortValue(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.getTime();
+}
+
 function showPanel(name) {
   qsa("#adminView .admin-tab-btn").forEach((button) => {
     button.classList.toggle("active", button.dataset.adminPanel === name);
@@ -65,7 +70,7 @@ function renderPlayers() {
   qs("#adminPlayersBody").innerHTML = players.length
     ? players.map((player) => `
       <tr>
-        <td>${player.id}</td>
+        <td data-sort="${player.id}">${player.id}</td>
         <td>${escapeHtml(player.nick)}</td>
         <td class="actions-cell">
           <div class="admin-actions">
@@ -82,11 +87,11 @@ function renderGames() {
   qs("#adminGamesBody").innerHTML = games.length
     ? games.map((game) => `
       <tr>
-        <td>${game.id}</td>
+        <td data-sort="${game.id}">${game.id}</td>
         <td>${escapeHtml(game.nazwa)}</td>
         <td>${escapeHtml(game.rodzaj)}</td>
-        <td>${game.min_graczy}</td>
-        <td>${game.max_graczy}</td>
+        <td data-sort="${game.min_graczy}">${game.min_graczy}</td>
+        <td data-sort="${game.max_graczy}">${game.max_graczy}</td>
         <td>${escapeHtml(game.rodzaj_wygranej)}</td>
         <td class="actions-cell">
           <div class="admin-actions">
@@ -103,11 +108,11 @@ function renderMatches() {
   qs("#adminMatchesBody").innerHTML = matches.length
     ? matches.map((match) => `
       <tr>
-        <td>${match.id}</td>
-        <td>${formatDate(match.data)}</td>
+        <td data-sort="${match.id}">${match.id}</td>
+        <td data-sort="${dateSortValue(match.data)}">${formatDate(match.data)}</td>
         <td>${normalizeGame(match.game_name)}</td>
         <td>${normalizeUser(match.winner_nick)}</td>
-        <td>${match.ilosc_graczy}</td>
+        <td data-sort="${match.ilosc_graczy}">${match.ilosc_graczy}</td>
         <td>
           <div class="score-list">
             ${(scoresByMatch[match.id] || []).map((score) => `<span class="score-chip">${normalizeUser(score.player_nick)}: ${score.liczba_punktow}</span>`).join("")}

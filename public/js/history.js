@@ -12,13 +12,16 @@ import {
 
 function renderHistoryRow(type, r, scoresByMatch = {}) {
   const scores = r.scores ?? scoresByMatch[r.id] ?? [];
+  const rawDate = r.match_date || r.data;
+  const dateSort = rawDate ? new Date(rawDate).getTime() : "";
 
   const base = {
-    date: escapeHtml(formatDate(r.match_date || r.data)),
+    date: escapeHtml(formatDate(rawDate)),
+    dateSort: Number.isFinite(dateSort) ? dateSort : "",
     game: normalizeGame(r.game_name || r.nazwa),
     winner: normalizeUser(r.winner || r.winner_nick),
-    player_count: r.player_count ?? r.ilosc_graczy ?? "—",
-    points: escapeHtml(String(r.points_scored ?? "—")),
+    player_count: Number(r.player_count ?? r.ilosc_graczy ?? 0),
+    points: r.points_scored ?? "—",
     scores: formatScores(scores),
   };
 
@@ -26,10 +29,10 @@ function renderHistoryRow(type, r, scoresByMatch = {}) {
     case "recent":
       return `
         <tr>
-          <td>${base.date}</td>
+          <td data-sort="${base.dateSort}">${base.date}</td>
           <td>${base.game}</td>
           <td>${base.winner}</td>
-          <td>${base.player_count}</td>
+          <td data-sort="${base.player_count}">${base.player_count || "—"}</td>
           <td>${base.scores}</td>
         </tr>
       `;
@@ -37,9 +40,9 @@ function renderHistoryRow(type, r, scoresByMatch = {}) {
     case "game":
       return `
         <tr>
-          <td>${base.date}</td>
+          <td data-sort="${base.dateSort}">${base.date}</td>
           <td>${base.winner}</td>
-          <td>${base.player_count}</td>
+          <td data-sort="${base.player_count}">${base.player_count || "—"}</td>
           <td>${base.scores}</td>
         </tr>
       `;
@@ -47,11 +50,11 @@ function renderHistoryRow(type, r, scoresByMatch = {}) {
     case "player":
       return `
         <tr>
-          <td>${base.date}</td>
+          <td data-sort="${base.dateSort}">${base.date}</td>
           <td>${base.game}</td>
           <td>${base.winner}</td>
-          <td>${base.points}</td>
-          <td>${base.player_count}</td>
+          <td data-sort="${Number.isFinite(Number(base.points)) ? Number(base.points) : ""}">${escapeHtml(String(base.points))}</td>
+          <td data-sort="${base.player_count}">${base.player_count || "—"}</td>
           <td>${base.scores}</td>
         </tr>
       `;
