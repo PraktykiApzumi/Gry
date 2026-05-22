@@ -2,6 +2,7 @@ import { qs, qsa } from "./dom.js";
 import { attachAutocomplete } from "./autocomplete.js";
 import { deleteRequest, getRequest, postJson, putJson } from "./api.js";
 import { normalizeGame, normalizeUser, escapeHtml } from "./utils.js";
+import { createPaginator, renderPaginationControls } from "./pagination.js";
 
 let players = [];
 let games = [];
@@ -11,6 +12,10 @@ let modalType = "";
 let modalId = 0;
 let activeMatchId = 0;
 let openGameModalRef = null;
+
+const playersPaginator = createPaginator();
+const gamesPaginator   = createPaginator();
+const matchesPaginator = createPaginator();
 
 function showToast(message, variant = "success") {
   const existing = document.querySelector(".inline-toast");
@@ -53,7 +58,7 @@ function showPanel(name) {
 
 async function refreshAdminPanel() {
   players = (await getRequest("api/admin/players")).data || [];
-  games = (await getRequest("api/admin/games")).data || [];
+  games   = (await getRequest("api/admin/games")).data || [];
   matches = (await getRequest("api/admin/matches")).data || [];
 
   scoresByMatch = {};
@@ -61,14 +66,19 @@ async function refreshAdminPanel() {
     scoresByMatch[match.id] = (await getRequest(`api/admin/scores/${match.id}`)).data || [];
   }
 
+  playersPaginator.setItems(players);
+  gamesPaginator.setItems(games);
+  matchesPaginator.setItems(matches);
+
   renderPlayers();
   renderGames();
   renderMatches();
 }
 
 function renderPlayers() {
-  qs("#adminPlayersBody").innerHTML = players.length
-    ? players.map((player) => `
+  const page = playersPaginator.getPage();
+  qs("#adminPlayersBody").innerHTML = page.length
+    ? page.map((player) => `
       <tr>
         <td data-sort="${player.id}">${player.id}</td>
         <td>${escapeHtml(player.nick)}</td>
@@ -81,11 +91,18 @@ function renderPlayers() {
       </tr>
     `).join("")
     : emptyRow(3, "Brak graczy");
+
+  renderPaginationControls(
+    playersPaginator,
+    qs("#adminPlayersPagination"),
+    renderPlayers
+  );
 }
 
 function renderGames() {
-  qs("#adminGamesBody").innerHTML = games.length
-    ? games.map((game) => `
+  const page = gamesPaginator.getPage();
+  qs("#adminGamesBody").innerHTML = page.length
+    ? page.map((game) => `
       <tr>
         <td data-sort="${game.id}">${game.id}</td>
         <td>${escapeHtml(game.nazwa)}</td>
@@ -102,11 +119,18 @@ function renderGames() {
       </tr>
     `).join("")
     : emptyRow(7, "Brak gier");
+
+  renderPaginationControls(
+    gamesPaginator,
+    qs("#adminGamesPagination"),
+    renderGames
+  );
 }
 
 function renderMatches() {
-  qs("#adminMatchesBody").innerHTML = matches.length
-    ? matches.map((match) => `
+  const page = matchesPaginator.getPage();
+  qs("#adminMatchesBody").innerHTML = page.length
+    ? page.map((match) => `
       <tr>
         <td data-sort="${match.id}">${match.id}</td>
         <td data-sort="${dateSortValue(match.data)}">${formatDate(match.data)}</td>
@@ -116,7 +140,9 @@ function renderMatches() {
         <td>
           <div class="score-list">
             ${(scoresByMatch[match.id] || []).map((score) => `<span class="score-chip">${normalizeUser(score.player_nick)}: ${score.liczba_punktow}</span>`).join("")}
-            ${(scoresByMatch[match.id] || []).length ? `<button type="button" class="btn-score-edit" data-action="edit-scores" data-id="${match.id}">Edytuj wyniki</button>` : `<span class="admin-muted">Brak wynikow</span>`}
+            ${(scoresByMatch[match.id] || []).length
+              ? `<button type="button" class="btn-score-edit" data-action="edit-scores" data-id="${match.id}">Edytuj wyniki</button>`
+              : `<span class="admin-muted">Brak wynikow</span>`}
           </div>
         </td>
         <td class="actions-cell">
@@ -127,6 +153,12 @@ function renderMatches() {
       </tr>
     `).join("")
     : emptyRow(7, "Brak rozgrywek");
+
+  renderPaginationControls(
+    matchesPaginator,
+    qs("#adminMatchesPagination"),
+    renderMatches
+  );
 }
 
 function openEntityModal(title, html, type, id = 0) {
@@ -171,15 +203,15 @@ async function saveEntityModal(event) {
     }
 
     if (modalType === "match") {
-      const gameName = String(data.get("gameName")).trim();
-      const winnerName = String(data.get("winnerName")).trim();
+      const gameName    = String(data.get("gameName")).trim();
+      const winnerName  = String(data.get("winnerName")).trim();
       const playerCount = Number(data.get("playerCount"));
-      const game = await getRequest(`api/game/${encodeURIComponent(gameName)}`);
+      const game   = await getRequest(`api/game/${encodeURIComponent(gameName)}`);
       const winner = await getRequest(`api/player/${encodeURIComponent(winnerName)}`);
 
       await putJson(`api/match/${modalId}`, {
-        gameId: Number(game.gameData.id),
-        winnerId: Number(winner.playerData.id),
+        gameId:      Number(game.gameData.id),
+        winnerId:    Number(winner.playerData.id),
         playerCount
       });
     }
@@ -198,7 +230,9 @@ function openScoresModal(matchId) {
   const isOtherWinType = match.rodzaj_wygranej === "inna";
 
   activeMatchId = matchId;
-  qs("#adminScoresModalTitle").textContent = isOtherWinType ? `Zwyciezca rozgrywki #${match.id}` : `Wyniki rozgrywki #${match.id}`;
+  qs("#adminScoresModalTitle").textContent = isOtherWinType
+    ? `Zwyciezca rozgrywki #${match.id}`
+    : `Wyniki rozgrywki #${match.id}`;
   qs("#adminScoresMeta").innerHTML = `
     <div><strong>Gra:</strong> ${escapeHtml(match.game_name)}</div>
     <div><strong>Zwyciezca:</strong> ${escapeHtml(match.winner_nick)}</div>
@@ -232,10 +266,10 @@ function closeScoresModal() {
 
 async function saveScores(event) {
   event.preventDefault();
-  const match = matches.find((item) => item.id === activeMatchId);
+  const match  = matches.find((item) => item.id === activeMatchId);
   const scores = scoresByMatch[activeMatchId] || [];
-  const data = new FormData(event.currentTarget);
-  let winnerId = scores[0].id_gracza;
+  const data   = new FormData(event.currentTarget);
+  let winnerId    = scores[0].id_gracza;
   let winnerPoints = match.rodzaj_wygranej === "punktowa-malejaca" ? Number.POSITIVE_INFINITY : -1;
 
   try {
@@ -245,7 +279,7 @@ async function saveScores(event) {
       for (const score of scores) {
         const points = Number(data.get(`score-${score.id}`));
         await putJson(`api/score/${score.id}`, {
-          matchId: score.id_rozgrywki,
+          matchId:  score.id_rozgrywki,
           playerId: score.id_gracza,
           points
         });
@@ -260,7 +294,7 @@ async function saveScores(event) {
     }
 
     await putJson(`api/match/${match.id}`, {
-      gameId: match.id_gry,
+      gameId:      match.id_gry,
       winnerId,
       playerCount: match.ilosc_graczy
     });
@@ -313,7 +347,7 @@ function bindButtons() {
     const button = event.target.closest("[data-action]");
     if (!button) return;
 
-    const id = Number(button.dataset.id);
+    const id     = Number(button.dataset.id);
     const action = button.dataset.action;
 
     if (action === "edit-player") openPlayerModal(players.find((item) => item.id === id));
@@ -331,9 +365,9 @@ function bindButtons() {
         onSaved: refreshAdminPanel
       });
     }
-    if (action === "delete-game") removeRecord("game", id);
+    if (action === "delete-game")  removeRecord("game", id);
     if (action === "delete-match") removeRecord("match", id);
-    if (action === "edit-scores") openScoresModal(id);
+    if (action === "edit-scores")  openScoresModal(id);
   });
 }
 
