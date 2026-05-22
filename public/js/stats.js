@@ -11,14 +11,8 @@ function emptyStatsRow(tableBody, message = "Brak danych") {
   cell.style.textAlign = "center";
   cell.style.color = "#999";
   cell.textContent = message;
-  row.append(cell);
   tableBody.replaceChildren(row);
-}
-
-function resetStatsSortState(table) {
-  table.querySelectorAll("th[aria-sort]").forEach((header) => {
-    header.removeAttribute("aria-sort");
-  });
+  row.append(cell);
 }
 
 function renderStatsRows(rows, statsValue) {
@@ -45,6 +39,43 @@ function renderStatsRows(rows, statsValue) {
   }).join("");
 }
 
+// Kolumny: index => klucz w danych, kierunek domyślny ("desc" = większe wyżej)
+const SORT_COLUMNS = [
+  null,                                    // 0: Gracz – sortowanie tekstowe
+  null,                                    // 1: Zakres – tekstowe
+  { key: "total_points",   type: "num" },  // 2: Punkty
+  { key: "average_points", type: "num" },  // 3: Śr. pkt
+  { key: "wins",           type: "num" },  // 4: Zwycięstwa
+  { key: "played_games",   type: "num" },  // 5: Ilość gier
+  { key: "_winrate",       type: "num" },  // 6: Winrate (wyliczany)
+];
+
+function getRowSortValue(row, colIndex) {
+  if (colIndex === 0) return (row.nick ?? "").toLowerCase();
+  if (colIndex === 1) return "";
+  if (colIndex === 6) {
+    const played = Number(row.played_games ?? 0);
+    return played > 0 ? Number(row.wins ?? 0) / played : -1;
+  }
+  const col = SORT_COLUMNS[colIndex];
+  if (!col) return 0;
+  return Number(row[col.key] ?? 0);
+}
+
+function sortRows(rows, colIndex, direction) {
+  return [...rows].sort((a, b) => {
+    const va = getRowSortValue(a, colIndex);
+    const vb = getRowSortValue(b, colIndex);
+    let cmp = 0;
+    if (typeof va === "string") {
+      cmp = va.localeCompare(vb, "pl");
+    } else {
+      cmp = va - vb;
+    }
+    return direction === "asc" ? cmp : -cmp;
+  });
+}
+
 function sortStatsRowsByPlayedGames(rows) {
   return [...rows].sort((a, b) => {
     const playedDiff = Number(b.played_games ?? 0) - Number(a.played_games ?? 0);
@@ -63,6 +94,9 @@ export function initStats() {
 
   let currentStatsScope = "game";
   let currentStatsValue = "";
+  let allRows = [];             // pełna, posortowana lista wierszy
+  let sortColIndex  = 5;        // domyślnie: Ilość gier
+  let sortDirection = "desc";
 
   const statsPaginator = createPaginator();
 
@@ -71,6 +105,46 @@ export function initStats() {
     (value) => `api/suggest/game/${encodeURIComponent(value)}`,
     { label: "game:stats", maxSuggestions: 3 }
   );
+
+  // --- Nagłówki tabeli: dodaj obsługę kliknięcia ---
+  const headers = statsTable.querySelectorAll("thead th");
+  headers.forEach((th, idx) => {
+    // Tylko kolumny z danymi (nie Zakres)
+    if (idx === 1) return;
+    th.style.cursor = "pointer";
+    th.addEventListener("click", () => {
+      if (!allRows.length) return;
+
+      if (sortColIndex === idx) {
+        sortDirection = sortDirection === "asc" ? "desc" : "asc";
+      } else {
+        sortColIndex = idx;
+        // Tekstowe (Gracz) domyślnie rosnąco, liczbowe malejąco
+        sortDirection = idx === 0 ? "asc" : "desc";
+      }
+
+      applySort();
+    });
+  });
+
+  function updateSortIndicators() {
+    headers.forEach((th, idx) => {
+      th.removeAttribute("aria-sort");
+      th.classList.remove("sort-asc", "sort-desc");
+    });
+    const activeTh = headers[sortColIndex];
+    if (activeTh) {
+      activeTh.setAttribute("aria-sort", sortDirection === "asc" ? "ascending" : "descending");
+      activeTh.classList.add(sortDirection === "asc" ? "sort-asc" : "sort-desc");
+    }
+  }
+
+  function applySort() {
+    const sorted = sortRows(allRows, sortColIndex, sortDirection);
+    statsPaginator.setItems(sorted);   // resetuje do strony 1
+    updateSortIndicators();
+    renderStatsPage();
+  }
 
   function renderStatsPage() {
     const page = statsPaginator.getPage();
@@ -101,14 +175,20 @@ export function initStats() {
       const rows = statsData.data;
 
       if (!rows || rows.length === 0) {
+        allRows = [];
         emptyStatsRow(tableBody);
         statsPaginator.setItems([]);
         renderPaginationControls(statsPaginator, qs("#statsPagination"), renderStatsPage);
         return;
       }
 
-      statsPaginator.setItems(sortStatsRowsByPlayedGames(rows));
-      resetStatsSortState(statsTable);
+      // Domyślne sortowanie po załadowaniu: Ilość gier malejąco
+      sortColIndex  = 5;
+      sortDirection = "desc";
+      allRows = sortStatsRowsByPlayedGames(rows);
+
+      statsPaginator.setItems(allRows);
+      updateSortIndicators();
       renderStatsPage();
     } catch (err) {
       if (err instanceof Error && err.message) {
@@ -130,9 +210,14 @@ export function initStats() {
       statsNameInput.required      = currentStatsScope === "game";
       statsTypeInput.style.display = currentStatsScope === "type" ? "block" : "none";
       statsTypeInput.required      = currentStatsScope === "type";
-      resetStatsSortState(statsTable);
-      emptyStatsRow(tableBody);
+
+      allRows = [];
       statsPaginator.setItems([]);
+      emptyStatsRow(tableBody);
+      headers.forEach((th) => {
+        th.removeAttribute("aria-sort");
+        th.classList.remove("sort-asc", "sort-desc");
+      });
       const paginationEl = qs("#statsPagination");
       if (paginationEl) paginationEl.innerHTML = "";
     });
