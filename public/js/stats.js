@@ -4,8 +4,15 @@ import { attachAutocomplete } from "./autocomplete.js";
 import { escapeHtml } from "./utils.js";
 import { createPaginator, renderPaginationControls } from "./pagination.js";
 
+function renderPanelLink(label, entityType, value) {
+  if (!value) return "—";
+  const safeLabel = escapeHtml(String(label));
+  const safeValue = escapeHtml(String(value));
+  return `<button type="button" class="panel-link" data-entity-type="${entityType}" data-entity-value="${safeValue}">${safeLabel}</button>`;
+}
+
 function emptyStatsRow(tableBody, message = "Brak danych") {
-  const row  = document.createElement("tr");
+  const row = document.createElement("tr");
   const cell = document.createElement("td");
   cell.colSpan = 7;
   cell.style.textAlign = "center";
@@ -15,21 +22,24 @@ function emptyStatsRow(tableBody, message = "Brak danych") {
   row.append(cell);
 }
 
-function renderStatsRows(rows, statsValue) {
+function renderStatsRows(rows, statsValue, statsScope) {
   return rows.map((row) => {
-    const avg        = row.average_points ?? "-";
-    const avgValue   = Number(avg);
-    const avgText    = Number.isFinite(avgValue) ? avgValue.toFixed(1) : avg;
+    const avg = row.average_points ?? "-";
+    const avgValue = Number(avg);
+    const avgText = Number.isFinite(avgValue) ? avgValue.toFixed(1) : avg;
     const playedGames = Number(row.played_games ?? 0);
-    const wins        = Number(row.wins ?? 0);
+    const wins = Number(row.wins ?? 0);
     const totalPoints = Number(row.total_points ?? 0);
     const winrateValue = playedGames > 0 ? (wins / playedGames) * 100 : null;
-    const winrate      = winrateValue === null ? "-" : `${winrateValue.toFixed(1)}%`;
+    const winrate = winrateValue === null ? "-" : `${winrateValue.toFixed(1)}%`;
+    const scopeCell = statsScope === "game"
+      ? renderPanelLink(statsValue, "game", statsValue)
+      : escapeHtml(statsValue);
 
     return `
       <tr>
-        <td>${escapeHtml(row.nick)}</td>
-        <td>${escapeHtml(statsValue)}</td>
+        <td>${renderPanelLink(row.nick, "player", row.nick)}</td>
+        <td>${scopeCell}</td>
         <td data-sort="${totalPoints}">${totalPoints}</td>
         <td data-sort="${Number.isFinite(avgValue) ? avgValue : ""}">${avgText}</td>
         <td data-sort="${wins}">${wins}</td>
@@ -40,13 +50,13 @@ function renderStatsRows(rows, statsValue) {
 }
 
 const SORT_COLUMNS = [
-  null,                                    
-  null,                                    
-  { key: "total_points",   type: "num" },  
-  { key: "average_points", type: "num" }, 
-  { key: "wins",           type: "num" }, 
-  { key: "played_games",   type: "num" }, 
-  { key: "_winrate",       type: "num" }, 
+  null,
+  null,
+  { key: "total_points", type: "num" },
+  { key: "average_points", type: "num" },
+  { key: "wins", type: "num" },
+  { key: "played_games", type: "num" },
+  { key: "_winrate", type: "num" },
 ];
 
 function getRowSortValue(row, colIndex) {
@@ -83,18 +93,18 @@ function sortStatsRowsByPlayedGames(rows) {
   });
 }
 
-export function initStats() {
-  const statsForm      = qs("#statsForm");
+export function initStats({ openGameHistory, openPlayerHistory } = {}) {
+  const statsForm = qs("#statsForm");
   const statsNameInput = qs("#statsName");
   const statsTypeInput = qs("#statsType");
-  const statsTable     = qs("#statsTable");
-  const tableBody      = qs("#tableBody");
-  const scopeButtons   = qsa(".scope-btn");
+  const statsTable = qs("#statsTable");
+  const tableBody = qs("#tableBody");
+  const scopeButtons = qsa(".scope-btn");
 
   let currentStatsScope = "game";
   let currentStatsValue = "";
   let allRows = [];
-  let sortColIndex  = 5;
+  let sortColIndex = 5;
   let sortDirection = "desc";
 
   const statsPaginator = createPaginator();
@@ -124,7 +134,7 @@ export function initStats() {
   });
 
   function updateSortIndicators() {
-    headers.forEach((th, idx) => {
+    headers.forEach((th) => {
       th.removeAttribute("aria-sort");
       th.classList.remove("sort-asc", "sort-desc");
     });
@@ -137,7 +147,7 @@ export function initStats() {
 
   function applySort() {
     const sorted = sortRows(allRows, sortColIndex, sortDirection);
-    statsPaginator.setItems(sorted);   
+    statsPaginator.setItems(sorted);
     updateSortIndicators();
     renderStatsPage();
   }
@@ -147,7 +157,7 @@ export function initStats() {
     if (!page.length) {
       emptyStatsRow(tableBody);
     } else {
-      tableBody.innerHTML = renderStatsRows(page, currentStatsValue);
+      tableBody.innerHTML = renderStatsRows(page, currentStatsValue, currentStatsScope);
     }
     renderPaginationControls(statsPaginator, qs("#statsPagination"), renderStatsPage);
   }
@@ -178,7 +188,7 @@ export function initStats() {
         return;
       }
 
-      sortColIndex  = 5;
+      sortColIndex = 5;
       sortDirection = "desc";
       allRows = sortStatsRowsByPlayedGames(rows);
 
@@ -202,9 +212,9 @@ export function initStats() {
       });
 
       statsNameInput.style.display = currentStatsScope === "game" ? "block" : "none";
-      statsNameInput.required      = currentStatsScope === "game";
+      statsNameInput.required = currentStatsScope === "game";
       statsTypeInput.style.display = currentStatsScope === "type" ? "block" : "none";
-      statsTypeInput.required      = currentStatsScope === "type";
+      statsTypeInput.required = currentStatsScope === "type";
 
       allRows = [];
       statsPaginator.setItems([]);
@@ -218,8 +228,21 @@ export function initStats() {
     });
   });
 
-  statsForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
+  statsForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
     await loadStats();
+  });
+
+  statsTable.addEventListener("click", async (event) => {
+    const trigger = event.target.closest(".panel-link");
+    if (!trigger) return;
+
+    const { entityType, entityValue } = trigger.dataset;
+    if (entityType === "player" && typeof openPlayerHistory === "function") {
+      await openPlayerHistory(entityValue);
+    }
+    if (entityType === "game" && currentStatsScope === "game" && typeof openGameHistory === "function") {
+      await openGameHistory(entityValue);
+    }
   });
 }

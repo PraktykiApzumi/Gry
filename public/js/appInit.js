@@ -16,22 +16,23 @@ export function initApp() {
     maxPlayersLabel: qs("#maxPlayersLabel"),
     playersLabel: qs("#playersLabel"),
     playersContainer: qs("#playersRow"),
-    openGameModal
+    openGameModal,
   });
 
-  initStats();
-  initHistory();
-  loadAdminPanel({ openGameModal }).catch((error) => {
-    alert(error instanceof Error ? error.message : "Nie mozna zaladowac admin panelu.");
-  });
-
-  initNavigation({
+  const navigation = initNavigation({
     onViewChange(viewId) {
       if (viewId !== "adminView") return;
 
       refreshAdminPanel().catch((error) => {
         alert(error instanceof Error ? error.message : "Nie mozna odswiezyc admin panelu.");
       });
-    }
+    },
+  });
+
+  const historyNavigation = initHistory({ showView: navigation.showView });
+  initStats(historyNavigation);
+
+  loadAdminPanel({ openGameModal, historyNavigation }).catch((error) => {
+    alert(error instanceof Error ? error.message : "Nie mozna zaladowac admin panelu.");
   });
 }

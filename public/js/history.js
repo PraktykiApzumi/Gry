@@ -4,26 +4,41 @@ import { attachAutocomplete } from "./autocomplete.js";
 import {
   formatDate,
   emptyRow,
-  normalizeUser,
-  normalizeGame,
   formatScores,
   escapeHtml,
+  normalizeGame,
+  normalizeUser,
+  isDeletedGame,
+  isDeletedUser,
 } from "./utils.js";
 import { createPaginator, renderPaginationControls } from "./pagination.js";
 
-function renderHistoryRow(type, r, scoresByMatch = {}) {
-  const scores  = r.scores ?? scoresByMatch[r.id] ?? [];
-  const rawDate = r.match_date || r.data;
+function renderPanelLink(label, entityType, value) {
+  if (!value) return "—";
+  if (entityType === "game" && isDeletedGame(value)) return normalizeGame(value);
+  if (entityType === "player" && isDeletedUser(value)) return normalizeUser(value);
+  const safeLabel = escapeHtml(String(label));
+  const safeValue = escapeHtml(String(value));
+  return `<button type="button" class="panel-link" data-entity-type="${entityType}" data-entity-value="${safeValue}">${safeLabel}</button>`;
+}
+
+function renderHistoryRow(type, row, scoresByMatch = {}) {
+  const scores = row.scores ?? scoresByMatch[row.id] ?? [];
+  const rawDate = row.match_date || row.data;
   const dateSort = rawDate ? new Date(rawDate).getTime() : "";
+  const gameName = row.game_name || row.nazwa || "";
+  const winnerName = row.winner || row.winner_nick || "";
+  const playerCount = Number(row.player_count ?? row.ilosc_graczy ?? 0);
+  const points = row.points_scored ?? "—";
 
   const base = {
-    date:         escapeHtml(formatDate(rawDate)),
-    dateSort:     Number.isFinite(dateSort) ? dateSort : "",
-    game:         normalizeGame(r.game_name || r.nazwa),
-    winner:       normalizeUser(r.winner || r.winner_nick),
-    player_count: Number(r.player_count ?? r.ilosc_graczy ?? 0),
-    points:       r.points_scored ?? "—",
-    scores:       formatScores(scores),
+    date: escapeHtml(formatDate(rawDate)),
+    dateSort: Number.isFinite(dateSort) ? dateSort : "",
+    game: renderPanelLink(normalizeGame(gameName), "game", gameName),
+    winner: renderPanelLink(normalizeUser(winnerName), "player", winnerName),
+    playerCount,
+    points,
+    scores: formatScores(scores),
   };
 
   switch (type) {
@@ -33,21 +48,19 @@ function renderHistoryRow(type, r, scoresByMatch = {}) {
           <td data-sort="${base.dateSort}">${base.date}</td>
           <td>${base.game}</td>
           <td>${base.winner}</td>
-          <td data-sort="${base.player_count}">${base.player_count || "—"}</td>
+          <td data-sort="${base.playerCount}">${base.playerCount || "—"}</td>
           <td>${base.scores}</td>
         </tr>
       `;
-
     case "game":
       return `
         <tr>
           <td data-sort="${base.dateSort}">${base.date}</td>
           <td>${base.winner}</td>
-          <td data-sort="${base.player_count}">${base.player_count || "—"}</td>
+          <td data-sort="${base.playerCount}">${base.playerCount || "—"}</td>
           <td>${base.scores}</td>
         </tr>
       `;
-
     case "player":
       return `
         <tr>
@@ -55,7 +68,7 @@ function renderHistoryRow(type, r, scoresByMatch = {}) {
           <td>${base.game}</td>
           <td>${base.winner}</td>
           <td data-sort="${Number.isFinite(Number(base.points)) ? Number(base.points) : ""}">${escapeHtml(String(base.points))}</td>
-          <td data-sort="${base.player_count}">${base.player_count || "—"}</td>
+          <td data-sort="${base.playerCount}">${base.playerCount || "—"}</td>
           <td>${base.scores}</td>
         </tr>
       `;
@@ -73,24 +86,151 @@ async function attachScoresToRows(rows) {
   );
 }
 
-export function initHistory() {
+export function initHistory({ showView } = {}) {
+  const historyView = qs("#historyView");
   const historyTabBtns = qsa(".history-tab-btn");
-  const historyPanels  = qsa(".history-panel");
+  const historyPanels = qsa(".history-panel");
 
   const recentBody = qs("#recentHistoryBody");
-  const gameBody   = qs("#gameHistoryBody");
+  const gameBody = qs("#gameHistoryBody");
   const playerBody = qs("#playerHistoryBody");
 
-  const loadRecentBtn       = qs("#loadRecentBtn");
-  const historyGameForm     = qs("#historyGameForm");
-  const historyPlayerForm   = qs("#historyPlayerForm");
-  const historyGameNameInput   = qs("#historyGameName");
+  const loadRecentBtn = qs("#loadRecentBtn");
+  const historyGameForm = qs("#historyGameForm");
+  const historyPlayerForm = qs("#historyPlayerForm");
+  const historyGameNameInput = qs("#historyGameName");
   const historyPlayerNameInput = qs("#historyPlayerName");
 
-  // Paginatory — jeden na każdą zakładkę historii
   const recentPaginator = createPaginator();
-  const gamePaginator   = createPaginator();
+  const gamePaginator = createPaginator();
   const playerPaginator = createPaginator();
+
+  function showHistoryPanel(target) {
+    const panelId = `history${target.charAt(0).toUpperCase()}${target.slice(1)}`;
+    historyTabBtns.forEach((button) => {
+      button.classList.toggle("active", button.dataset.history === target);
+    });
+    historyPanels.forEach((panel) => {
+      panel.classList.toggle("active", panel.id === panelId);
+    });
+  }
+
+  function renderRecentPage() {
+    const page = recentPaginator.getPage();
+    recentBody.innerHTML = page.map((row) => renderHistoryRow("recent", row)).join("");
+    renderPaginationControls(recentPaginator, qs("#recentHistoryPagination"), renderRecentPage);
+  }
+
+  function renderGamePage() {
+    const page = gamePaginator.getPage();
+    gameBody.innerHTML = page.map((row) => renderHistoryRow("game", row)).join("");
+    renderPaginationControls(gamePaginator, qs("#gameHistoryPagination"), renderGamePage);
+  }
+
+  function renderPlayerPage() {
+    const page = playerPaginator.getPage();
+    playerBody.innerHTML = page.map((row) => renderHistoryRow("player", row)).join("");
+    renderPaginationControls(playerPaginator, qs("#playerHistoryPagination"), renderPlayerPage);
+  }
+
+  async function loadRecentHistory() {
+    recentBody.innerHTML = emptyRow(5, "Ladowanie...");
+
+    try {
+      const data = await getRequest("api/history/recent");
+      const rows = await attachScoresToRows(data?.history ?? []);
+
+      if (!rows.length) {
+        recentBody.innerHTML = emptyRow(5, "Brak rozgrywek");
+        recentPaginator.setItems([]);
+        renderPaginationControls(recentPaginator, qs("#recentHistoryPagination"), renderRecentPage);
+        return false;
+      }
+
+      recentPaginator.setItems(rows);
+      renderRecentPage();
+      return true;
+    } catch (error) {
+      recentBody.innerHTML = emptyRow(5, "Blad pobierania danych");
+      console.error("[history/recent]", error);
+      return false;
+    }
+  }
+
+  async function loadGameHistory(name) {
+    const normalizedName = name?.trim();
+    if (!normalizedName) return false;
+
+    historyGameNameInput.value = normalizedName;
+    gameBody.innerHTML = emptyRow(4, "Ladowanie...");
+
+    try {
+      const data = await getRequest(`api/history/game/${encodeURIComponent(normalizedName)}`);
+      const rows = await attachScoresToRows(data?.history ?? []);
+
+      if (!rows.length) {
+        gameBody.innerHTML = emptyRow(4, "Brak rozgrywek dla tej gry");
+        gamePaginator.setItems([]);
+        renderPaginationControls(gamePaginator, qs("#gameHistoryPagination"), renderGamePage);
+        return false;
+      }
+
+      gamePaginator.setItems(rows);
+      renderGamePage();
+      return true;
+    } catch (error) {
+      gameBody.innerHTML = emptyRow(4, "Blad pobierania danych");
+      console.error("[history/game]", error);
+      return false;
+    }
+  }
+
+  async function loadPlayerHistory(name) {
+    const normalizedName = name?.trim();
+    if (!normalizedName) return false;
+
+    historyPlayerNameInput.value = normalizedName;
+    playerBody.innerHTML = emptyRow(6, "Ladowanie...");
+
+    try {
+      const data = await getRequest(`api/history/player/${encodeURIComponent(normalizedName)}`);
+      const rows = await attachScoresToRows(data?.history ?? []);
+
+      if (!rows.length) {
+        playerBody.innerHTML = emptyRow(6, "Brak rozgrywek dla tego gracza");
+        playerPaginator.setItems([]);
+        renderPaginationControls(playerPaginator, qs("#playerHistoryPagination"), renderPlayerPage);
+        return false;
+      }
+
+      playerPaginator.setItems(rows);
+      renderPlayerPage();
+      return true;
+    } catch (error) {
+      playerBody.innerHTML = emptyRow(6, "Blad pobierania danych");
+      console.error("[history/player]", error);
+      return false;
+    }
+  }
+
+  async function openHistoryTarget(entityType, value) {
+    if (typeof showView === "function") {
+      showView("historyView");
+    }
+
+    if (entityType === "recent") {
+      showHistoryPanel("recent");
+      return loadRecentHistory();
+    }
+
+    if (entityType === "game") {
+      showHistoryPanel("game");
+      return loadGameHistory(value);
+    }
+
+    showHistoryPanel("player");
+    return loadPlayerHistory(value);
+  }
 
   if (historyGameNameInput) {
     attachAutocomplete(
@@ -108,107 +248,43 @@ export function initHistory() {
     );
   }
 
-  historyTabBtns.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const target  = btn.dataset.history;
-      const panelId = `history${target.charAt(0).toUpperCase()}${target.slice(1)}`;
-      historyTabBtns.forEach((b) => b.classList.toggle("active", b === btn));
-      historyPanels.forEach((p) => p.classList.toggle("active", p.id === panelId));
+  historyTabBtns.forEach((button) => {
+    button.addEventListener("click", () => {
+      showHistoryPanel(button.dataset.history);
     });
   });
 
-  // --- RECENT ---
-  function renderRecentPage() {
-    const page = recentPaginator.getPage();
-    recentBody.innerHTML = page.map((r) => renderHistoryRow("recent", r)).join("");
-    renderPaginationControls(recentPaginator, qs("#recentHistoryPagination"), renderRecentPage);
-  }
-
   if (loadRecentBtn) {
-    loadRecentBtn.addEventListener("click", async () => {
-      recentBody.innerHTML = emptyRow(5, "Ladowanie...");
-
-      try {
-        const data = await getRequest("api/history/recent");
-        const rows = await attachScoresToRows(data?.history ?? []);
-
-        if (!rows.length) {
-          recentBody.innerHTML = emptyRow(5, "Brak rozgrywek");
-          return;
-        }
-
-        recentPaginator.setItems(rows);
-        renderRecentPage();
-      } catch (err) {
-        recentBody.innerHTML = emptyRow(5, "Blad pobierania danych");
-        console.error("[history/recent]", err);
-      }
+    loadRecentBtn.addEventListener("click", () => {
+      loadRecentHistory();
     });
-  }
-
-  // --- GAME ---
-  function renderGamePage() {
-    const page = gamePaginator.getPage();
-    gameBody.innerHTML = page.map((r) => renderHistoryRow("game", r)).join("");
-    renderPaginationControls(gamePaginator, qs("#gameHistoryPagination"), renderGamePage);
   }
 
   if (historyGameForm) {
-    historyGameForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const name = historyGameNameInput?.value.trim();
-      if (!name) return;
-
-      gameBody.innerHTML = emptyRow(4, "Ladowanie...");
-
-      try {
-        const data = await getRequest(`api/history/game/${encodeURIComponent(name)}`);
-        const rows = await attachScoresToRows(data?.history ?? []);
-
-        if (!rows.length) {
-          gameBody.innerHTML = emptyRow(4, "Brak rozgrywek dla tej gry");
-          return;
-        }
-
-        gamePaginator.setItems(rows);
-        renderGamePage();
-      } catch (err) {
-        gameBody.innerHTML = emptyRow(4, "Blad pobierania danych");
-        console.error("[history/game]", err);
-      }
+    historyGameForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      await loadGameHistory(historyGameNameInput?.value);
     });
-  }
-
-  // --- PLAYER ---
-  function renderPlayerPage() {
-    const page = playerPaginator.getPage();
-    playerBody.innerHTML = page.map((r) => renderHistoryRow("player", r)).join("");
-    renderPaginationControls(playerPaginator, qs("#playerHistoryPagination"), renderPlayerPage);
   }
 
   if (historyPlayerForm) {
-    historyPlayerForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const name = historyPlayerNameInput?.value.trim();
-      if (!name) return;
-
-      playerBody.innerHTML = emptyRow(6, "Ladowanie...");
-
-      try {
-        const data = await getRequest(`api/history/player/${encodeURIComponent(name)}`);
-        const rows = await attachScoresToRows(data?.history ?? []);
-
-        if (!rows.length) {
-          playerBody.innerHTML = emptyRow(6, "Brak rozgrywek dla tego gracza");
-          return;
-        }
-
-        playerPaginator.setItems(rows);
-        renderPlayerPage();
-      } catch (err) {
-        playerBody.innerHTML = emptyRow(6, "Blad pobierania danych");
-        console.error("[history/player]", err);
-      }
+    historyPlayerForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      await loadPlayerHistory(historyPlayerNameInput?.value);
     });
   }
+
+  historyView.addEventListener("click", async (event) => {
+    const trigger = event.target.closest(".panel-link");
+    if (!trigger) return;
+
+    const { entityType, entityValue } = trigger.dataset;
+    await openHistoryTarget(entityType, entityValue);
+  });
+
+  return {
+    openRecentHistory: () => openHistoryTarget("recent"),
+    openGameHistory: (name) => openHistoryTarget("game", name),
+    openPlayerHistory: (name) => openHistoryTarget("player", name),
+  };
 }

@@ -1,7 +1,6 @@
 import { qs, qsa } from "./dom.js";
-import { attachAutocomplete } from "./autocomplete.js";
 import { deleteRequest, getRequest, postJson, putJson } from "./api.js";
-import { normalizeGame, normalizeUser, escapeHtml } from "./utils.js";
+import { normalizeGame, normalizeUser, escapeHtml, isDeletedGame, isDeletedUser, formatScores } from "./utils.js";
 import { createPaginator, renderPaginationControls } from "./pagination.js";
 
 let players = [];
@@ -12,9 +11,10 @@ let modalType = "";
 let modalId = 0;
 let activeMatchId = 0;
 let openGameModalRef = null;
+let historyNavigation = null;
 
 const playersPaginator = createPaginator();
-const gamesPaginator   = createPaginator();
+const gamesPaginator = createPaginator();
 const matchesPaginator = createPaginator();
 
 function showToast(message, variant = "success") {
@@ -47,6 +47,12 @@ function dateSortValue(value) {
   return Number.isNaN(date.getTime()) ? "" : date.getTime();
 }
 
+function renderHistoryLink(type, value, label) {
+  if (type === "player" && isDeletedUser(value)) return normalizeUser(value);
+  if (type === "game" && isDeletedGame(value)) return normalizeGame(value);
+  return `<button type="button" class="panel-link" data-nav-history="${type}" data-nav-value="${escapeHtml(String(value))}">${label}</button>`;
+}
+
 function showPanel(name) {
   qsa("#adminView .admin-tab-btn").forEach((button) => {
     button.classList.toggle("active", button.dataset.adminPanel === name);
@@ -58,7 +64,7 @@ function showPanel(name) {
 
 async function refreshAdminPanel() {
   players = (await getRequest("api/admin/players")).data || [];
-  games   = (await getRequest("api/admin/games")).data || [];
+  games = (await getRequest("api/admin/games")).data || [];
   matches = (await getRequest("api/admin/matches")).data || [];
 
   scoresByMatch = {};
@@ -81,7 +87,7 @@ function renderPlayers() {
     ? page.map((player) => `
       <tr>
         <td data-sort="${player.id}">${player.id}</td>
-        <td>${escapeHtml(player.nick)}</td>
+        <td>${renderHistoryLink("player", player.nick, escapeHtml(player.nick))}</td>
         <td class="actions-cell">
           <div class="admin-actions">
             <button type="button" class="btn-edit" data-action="edit-player" data-id="${player.id}">Modyfikuj</button>
@@ -92,11 +98,7 @@ function renderPlayers() {
     `).join("")
     : emptyRow(3, "Brak graczy");
 
-  renderPaginationControls(
-    playersPaginator,
-    qs("#adminPlayersPagination"),
-    renderPlayers
-  );
+  renderPaginationControls(playersPaginator, qs("#adminPlayersPagination"), renderPlayers);
 }
 
 function renderGames() {
@@ -105,7 +107,7 @@ function renderGames() {
     ? page.map((game) => `
       <tr>
         <td data-sort="${game.id}">${game.id}</td>
-        <td>${escapeHtml(game.nazwa)}</td>
+        <td>${renderHistoryLink("game", game.nazwa, escapeHtml(game.nazwa))}</td>
         <td>${escapeHtml(game.rodzaj)}</td>
         <td data-sort="${game.min_graczy}">${game.min_graczy}</td>
         <td data-sort="${game.max_graczy}">${game.max_graczy}</td>
@@ -120,11 +122,7 @@ function renderGames() {
     `).join("")
     : emptyRow(7, "Brak gier");
 
-  renderPaginationControls(
-    gamesPaginator,
-    qs("#adminGamesPagination"),
-    renderGames
-  );
+  renderPaginationControls(gamesPaginator, qs("#adminGamesPagination"), renderGames);
 }
 
 function renderMatches() {
@@ -134,15 +132,15 @@ function renderMatches() {
       <tr>
         <td data-sort="${match.id}">${match.id}</td>
         <td data-sort="${dateSortValue(match.data)}">${formatDate(match.data)}</td>
-        <td>${normalizeGame(match.game_name)}</td>
-        <td>${normalizeUser(match.winner_nick)}</td>
+        <td>${renderHistoryLink("game", match.game_name, normalizeGame(match.game_name))}</td>
+        <td>${renderHistoryLink("player", match.winner_nick, normalizeUser(match.winner_nick))}</td>
         <td data-sort="${match.ilosc_graczy}">${match.ilosc_graczy}</td>
         <td>
           <div class="score-list">
-            ${(scoresByMatch[match.id] || []).map((score) => `<span class="score-chip">${normalizeUser(score.player_nick)}: ${score.liczba_punktow}</span>`).join("")}
+            ${formatScores(scoresByMatch[match.id] || [])}
             ${(scoresByMatch[match.id] || []).length
               ? `<button type="button" class="btn-score-edit" data-action="edit-scores" data-id="${match.id}">Edytuj wyniki</button>`
-              : `<span class="admin-muted">Brak wynikow</span>`}
+              : ""}
           </div>
         </td>
         <td class="actions-cell">
@@ -154,11 +152,7 @@ function renderMatches() {
     `).join("")
     : emptyRow(7, "Brak rozgrywek");
 
-  renderPaginationControls(
-    matchesPaginator,
-    qs("#adminMatchesPagination"),
-    renderMatches
-  );
+  renderPaginationControls(matchesPaginator, qs("#adminMatchesPagination"), renderMatches);
 }
 
 function openEntityModal(title, html, type, id = 0) {
@@ -203,16 +197,16 @@ async function saveEntityModal(event) {
     }
 
     if (modalType === "match") {
-      const gameName    = String(data.get("gameName")).trim();
-      const winnerName  = String(data.get("winnerName")).trim();
+      const gameName = String(data.get("gameName")).trim();
+      const winnerName = String(data.get("winnerName")).trim();
       const playerCount = Number(data.get("playerCount"));
-      const game   = await getRequest(`api/game/${encodeURIComponent(gameName)}`);
+      const game = await getRequest(`api/game/${encodeURIComponent(gameName)}`);
       const winner = await getRequest(`api/player/${encodeURIComponent(winnerName)}`);
 
       await putJson(`api/match/${modalId}`, {
-        gameId:      Number(game.gameData.id),
-        winnerId:    Number(winner.playerData.id),
-        playerCount
+        gameId: Number(game.gameData.id),
+        winnerId: Number(winner.playerData.id),
+        playerCount,
       });
     }
 
@@ -266,10 +260,10 @@ function closeScoresModal() {
 
 async function saveScores(event) {
   event.preventDefault();
-  const match  = matches.find((item) => item.id === activeMatchId);
+  const match = matches.find((item) => item.id === activeMatchId);
   const scores = scoresByMatch[activeMatchId] || [];
-  const data   = new FormData(event.currentTarget);
-  let winnerId    = scores[0].id_gracza;
+  const data = new FormData(event.currentTarget);
+  let winnerId = scores[0].id_gracza;
   let winnerPoints = match.rodzaj_wygranej === "punktowa-malejaca" ? Number.POSITIVE_INFINITY : -1;
 
   try {
@@ -279,9 +273,9 @@ async function saveScores(event) {
       for (const score of scores) {
         const points = Number(data.get(`score-${score.id}`));
         await putJson(`api/score/${score.id}`, {
-          matchId:  score.id_rozgrywki,
+          matchId: score.id_rozgrywki,
           playerId: score.id_gracza,
-          points
+          points,
         });
         const isBetter = match.rodzaj_wygranej === "punktowa-malejaca"
           ? points < winnerPoints
@@ -294,9 +288,9 @@ async function saveScores(event) {
     }
 
     await putJson(`api/match/${match.id}`, {
-      gameId:      match.id_gry,
+      gameId: match.id_gry,
       winnerId,
-      playerCount: match.ilosc_graczy
+      playerCount: match.ilosc_graczy,
     });
 
     closeScoresModal();
@@ -311,7 +305,7 @@ async function removeRecord(type, id) {
   if (!window.confirm("Czy na pewno chcesz usunac ten rekord?")) return;
   await deleteRequest(`api/${type}/${id}`);
   await refreshAdminPanel();
-  showToast("Usunięto rekord.");
+  showToast("Usunieto rekord.");
 }
 
 function openAddMatchView() {
@@ -344,10 +338,18 @@ function bindButtons() {
   });
 
   qs("#adminView").addEventListener("click", (event) => {
+    const historyLink = event.target.closest("[data-nav-history]");
+    if (historyLink && historyNavigation) {
+      const { navHistory, navValue } = historyLink.dataset;
+      if (navHistory === "player") historyNavigation.openPlayerHistory(navValue);
+      if (navHistory === "game") historyNavigation.openGameHistory(navValue);
+      return;
+    }
+
     const button = event.target.closest("[data-action]");
     if (!button) return;
 
-    const id     = Number(button.dataset.id);
+    const id = Number(button.dataset.id);
     const action = button.dataset.action;
 
     if (action === "edit-player") openPlayerModal(players.find((item) => item.id === id));
@@ -362,17 +364,18 @@ function bindButtons() {
         minPlayers: game.min_graczy,
         maxPlayers: game.max_graczy,
         winType: game.rodzaj_wygranej,
-        onSaved: refreshAdminPanel
+        onSaved: refreshAdminPanel,
       });
     }
-    if (action === "delete-game")  removeRecord("game", id);
+    if (action === "delete-game") removeRecord("game", id);
     if (action === "delete-match") removeRecord("match", id);
-    if (action === "edit-scores")  openScoresModal(id);
+    if (action === "edit-scores") openScoresModal(id);
   });
 }
 
 export async function loadAdminPanel(options = {}) {
   openGameModalRef = options.openGameModal;
+  historyNavigation = options.historyNavigation || null;
   bindButtons();
   await refreshAdminPanel();
 }

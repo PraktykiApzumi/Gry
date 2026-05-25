@@ -31,14 +31,22 @@ export function emptyRow(cols, msg) {
   return `<tr><td colspan="${cols}" style="text-align:center; color:#999;">${msg}</td></tr>`;
 }
 
+export function isDeletedUser(value) {
+  return typeof value === "string" && value.startsWith("deleted_user_");
+}
+
+export function isDeletedGame(value) {
+  return typeof value === "string" && value.startsWith("deleted_game_");
+}
+
 export function normalizeUser(value) {
   if (!value) return "—";
-  return value.startsWith("deleted_user_") ? "deleted" : escapeHtml(value);
+  return isDeletedUser(value) ? "deleted" : escapeHtml(value);
 }
 
 export function normalizeGame(value) {
   if (!value) return "—";
-  return value.startsWith("deleted_game_") ? "deleted" : escapeHtml(value);
+  return isDeletedGame(value) ? "deleted" : escapeHtml(value);
 }
 
 export function formatDate(value) {
@@ -55,9 +63,12 @@ export function formatScores(scores) {
   }
 
   return scores
-    .map((s) => {
-      const nick = normalizeUser(s.player_nick);
-      return `<span class="score-chip">${nick}: ${s.liczba_punktow}</span>`;
+    .map((score) => {
+      const nick = normalizeUser(score.player_nick);
+      const nickLabel = isDeletedUser(score.player_nick)
+        ? nick
+        : `<button type="button" class="panel-link score-link" data-entity-type="player" data-entity-value="${escapeHtml(String(score.player_nick))}">${nick}</button>`;
+      return `<span class="score-chip">${nickLabel}: ${score.liczba_punktow}</span>`;
     })
     .join("");
 }
