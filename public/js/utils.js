@@ -1,3 +1,5 @@
+import { formatDate as formatLocalizedDate, t } from "./i18n.js";
+
 export function escapeHtml(value) {
   if (value === null || value === undefined) return "";
   return String(value)
@@ -40,26 +42,22 @@ export function isDeletedGame(value) {
 }
 
 export function normalizeUser(value) {
-  if (!value) return "—";
+  if (!value) return "-";
   return isDeletedUser(value) ? "deleted" : escapeHtml(value);
 }
 
 export function normalizeGame(value) {
-  if (!value) return "—";
+  if (!value) return "-";
   return isDeletedGame(value) ? "deleted" : escapeHtml(value);
 }
 
 export function formatDate(value) {
-  if (!value) return "—";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? value
-    : date.toLocaleString("pl-PL");
+  return formatLocalizedDate(value);
 }
 
 export function formatScores(scores) {
   if (!Array.isArray(scores) || !scores.length) {
-    return `<span class="admin-muted">Brak wynikow</span>`;
+    return `<span class="admin-muted">${t("noScoreData")}</span>`;
   }
 
   return scores

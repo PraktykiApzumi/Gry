@@ -1,49 +1,50 @@
 import { toInt, escapeHtml } from "./utils.js";
 import { getRequest, postJson } from "./api.js";
 import { attachAutocomplete } from "./autocomplete.js";
+import { t } from "./i18n.js";
 
-function showToast(message, variant = "success") {
+const toast = (message, variant = "success") => {
   const existing = document.querySelector(".inline-toast");
   if (existing) existing.remove();
 
-  const toast = document.createElement("div");
-  toast.className = `inline-toast is-${variant}`;
-  toast.textContent = message;
-  document.body.appendChild(toast);
+  const element = document.createElement("div");
+  element.className = `inline-toast is-${variant}`;
+  element.textContent = message;
+  document.body.appendChild(element);
 
-  requestAnimationFrame(() => toast.classList.add("is-visible"));
+  requestAnimationFrame(() => element.classList.add("is-visible"));
   setTimeout(() => {
-    toast.classList.remove("is-visible");
-    setTimeout(() => toast.remove(), 250);
+    element.classList.remove("is-visible");
+    setTimeout(() => element.remove(), 250);
   }, 2600);
-}
+};
 
-function setFieldError(input) {
+const setFieldError = (input) => {
   if (!input) return;
-  input.classList.toggle("field-input-error", true);
+  input.classList.add("field-input-error");
   input.setAttribute("aria-invalid", "true");
-}
+};
 
-function clearFieldError(input) {
+const clearFieldError = (input) => {
   if (!input) return;
-  input.classList.toggle("field-input-error", false);
+  input.classList.remove("field-input-error");
   input.setAttribute("aria-invalid", "false");
-}
+};
 
-function getPlayerValues(playersContainer) {
-  return Array.from(playersContainer.querySelectorAll(".player-card")).map((card) => ({
+const getPlayerValues = (playersContainer) =>
+  Array.from(playersContainer.querySelectorAll(".player-card")).map((card) => ({
     name: card.querySelector(".player-name")?.value ?? "",
     points: card.querySelector(".player-points")?.value ?? "",
-    winner: Boolean(card.querySelector(".winner-radio")?.checked)
+    winner: Boolean(card.querySelector(".winner-radio")?.checked),
   }));
-}
 
-function findDuplicatePlayerNames(players) {
+const findDuplicatePlayerNames = (players) => {
   const counts = new Map();
 
   players.forEach((player) => {
     const trimmedName = player.name.trim();
     if (trimmedName.length < 2) return;
+
     const normalizedName = trimmedName.toLocaleLowerCase("pl-PL");
     counts.set(normalizedName, (counts.get(normalizedName) || 0) + 1);
   });
@@ -51,9 +52,9 @@ function findDuplicatePlayerNames(players) {
   return new Set(
     Array.from(counts.entries())
       .filter(([, count]) => count > 1)
-      .map(([name]) => name)
+      .map(([name]) => name),
   );
-}
+};
 
 export function initMatchForm({
   matchForm,
@@ -62,7 +63,7 @@ export function initMatchForm({
   maxPlayersLabel,
   playersLabel,
   playersContainer,
-  openGameModal
+  openGameModal,
 }) {
   const defaultMaxPlayersMin = Number(maxPlayersInput.min) || 1;
   const defaultMaxPlayersMax = Number(maxPlayersInput.max) || 10;
@@ -73,52 +74,46 @@ export function initMatchForm({
   let currentWinType = "punktowa";
   let savedPlayers = [];
 
-  function saveVisiblePlayers() {
-    const visiblePlayers = getPlayerValues(playersContainer);
-    visiblePlayers.forEach((player, index) => {
+  const saveVisiblePlayers = () => {
+    getPlayerValues(playersContainer).forEach((player, index) => {
       savedPlayers[index] = player;
     });
-  }
+  };
 
-  function toggleMatchPlayersFields(visible) {
+  const toggleMatchPlayersFields = (visible) => {
     maxPlayersInput.style.display = visible ? "block" : "none";
-    if (maxPlayersLabel) {
-      maxPlayersLabel.style.display = visible ? "block" : "none";
-    }
-    if (playersLabel) {
-      playersLabel.style.display = visible ? "block" : "none";
-    }
+    if (maxPlayersLabel) maxPlayersLabel.style.display = visible ? "block" : "none";
+    if (playersLabel) playersLabel.style.display = visible ? "block" : "none";
+
     if (!visible) {
       saveVisiblePlayers();
       playersContainer.innerHTML = "";
       clearFieldError(maxPlayersInput);
     }
-  }
+  };
 
   function attachPlayerAutocomplete(card) {
     const playerNameInput = card.querySelector(".player-name");
-    attachAutocomplete(
-      playerNameInput,
-      (value) => `api/suggest/player/${encodeURIComponent(value)}`,
-      {
-        label: "player:match",
-        maxSuggestions: 3,
-        emptyLabel: "Dodaj gracza",
-        onEmptySelect: async (playerName) => {
-          const trimmedName = playerName.trim();
-          if (!trimmedName) return;
-          clearFieldError(playerNameInput);
-          try {
-            await postJson("api/player", { name: trimmedName });
-            playerNameInput.value = trimmedName;
-            showToast(`Dodano gracza "${trimmedName}".`);
-          } catch {
-            setFieldError(playerNameInput);
-            showToast("Nie udalo sie dodac gracza.", "error");
-          }
+
+    attachAutocomplete(playerNameInput, (value) => `api/suggest/player/${encodeURIComponent(value)}`, {
+      label: "player:match",
+      maxSuggestions: 3,
+      emptyLabel: t("add"),
+      onEmptySelect: async (playerName) => {
+        const trimmedName = playerName.trim();
+        if (!trimmedName) return;
+
+        clearFieldError(playerNameInput);
+        try {
+          await postJson("api/player", { name: trimmedName });
+          playerNameInput.value = trimmedName;
+          toast(`${t("addPlayerSuccess")}: "${trimmedName}".`);
+        } catch {
+          setFieldError(playerNameInput);
+          toast(t("playerExists"), "error");
         }
-      }
-    );
+      },
+    });
   }
 
   function renderPlayers() {
@@ -131,6 +126,7 @@ export function initMatchForm({
     const maxAllowed = Number(maxPlayersInput.max) || 10;
     const count = toInt(maxPlayersInput.value) || minAllowed;
     const safeCount = Math.max(minAllowed, Math.min(maxAllowed, count));
+
     if (safeCount !== count) {
       maxPlayersInput.value = String(safeCount);
     }
@@ -138,23 +134,42 @@ export function initMatchForm({
     saveVisiblePlayers();
     playersContainer.innerHTML = "";
 
-    for (let i = 0; i < safeCount; i++) {
-      const player = savedPlayers[i] || {};
+    for (let index = 0; index < safeCount; index++) {
+      const player = savedPlayers[index] || {};
       const card = document.createElement("div");
       card.className = "player-card";
       const isOtherWinType = currentWinType === "inna";
+
       card.innerHTML = `
-        <div class="field-label">Gracz ${i + 1}</div>
-        <input type="text" class="player-name" placeholder="Nazwa gracza" value="${escapeHtml(player.name || "")}" required>
+        <div class="field-label">${t("playerPrefix")} ${index + 1}</div>
+        <input
+          type="text"
+          class="player-name"
+          placeholder="${t("playerNamePlaceholder")}"
+          value="${escapeHtml(player.name || "")}"
+          required
+        >
         <div class="field-error" aria-live="polite"></div>
-        ${isOtherWinType ? `
-          <label class="winner-radio-label">
-            <input type="radio" name="winnerName" class="winner-radio" value="${escapeHtml(player.name || "")}" ${player.winner ? "checked" : ""}>
-            Zwyciezca
-          </label>
-        ` : `
-          <input type="number" class="player-points" placeholder="Punkty" min="0" value="${escapeHtml(player.points || "")}" required>
-        `}
+        ${
+          isOtherWinType
+            ? `<label class="winner-radio-label">
+                <input
+                  type="radio"
+                  name="winnerName"
+                  class="winner-radio"
+                  value="${escapeHtml(player.name || "")}"
+                  ${player.winner ? "checked" : ""}
+                >${t("chooseWinner")}
+              </label>`
+            : `<input
+                type="number"
+                class="player-points"
+                placeholder="${t("colPoints")}"
+                min="0"
+                value="${escapeHtml(player.points || "")}"
+                required
+              >`
+        }
         <div class="field-error" aria-live="polite"></div>
       `;
 
@@ -162,6 +177,7 @@ export function initMatchForm({
       card.querySelectorAll("input").forEach((input) => {
         input.addEventListener("input", () => clearFieldError(input));
       });
+
       const nameInput = card.querySelector(".player-name");
       const winnerRadio = card.querySelector(".winner-radio");
       if (nameInput && winnerRadio) {
@@ -169,33 +185,34 @@ export function initMatchForm({
           winnerRadio.value = nameInput.value.trim();
         });
       }
+
       playersContainer.appendChild(card);
     }
   }
 
-  function setMaxPlayersRange(minPlayers, maxPlayers, winType = "punktowa") {
+  const setMaxPlayersRange = (minPlayers, maxPlayers, winType = "punktowa") => {
     maxPlayersInput.min = String(minPlayers);
     maxPlayersInput.max = String(maxPlayers);
-    maxPlayersInput.placeholder = `Liczba graczy (${minPlayers}-${maxPlayers})`;
+    maxPlayersInput.placeholder = t("playerCountPlaceholder");
     maxPlayersInput.value = "";
     currentWinType = winType || "punktowa";
     hasResolvedGameConstraints = true;
     clearFieldError(gameNameInput);
     toggleMatchPlayersFields(true);
     renderPlayers();
-  }
+  };
 
-  function clearMaxPlayersRange() {
+  const clearMaxPlayersRange = () => {
     saveVisiblePlayers();
     savedPlayers = [];
     maxPlayersInput.min = String(defaultMaxPlayersMin);
     maxPlayersInput.max = String(defaultMaxPlayersMax);
-    maxPlayersInput.placeholder = "Liczba graczy";
+    maxPlayersInput.placeholder = t("playerCountPlaceholder");
     maxPlayersInput.value = String(defaultMaxPlayersValue);
     currentWinType = "punktowa";
     hasResolvedGameConstraints = false;
     toggleMatchPlayersFields(false);
-  }
+  };
 
   async function syncGamePlayerConstraints(gameNameRaw) {
     const gameName = gameNameRaw.trim();
@@ -205,6 +222,7 @@ export function initMatchForm({
     }
 
     const requestId = ++gameConstraintsRequestId;
+
     try {
       const gameDataResponse = await getRequest(`api/game/${encodeURIComponent(gameName)}`);
       if (requestId !== gameConstraintsRequestId) return;
@@ -231,36 +249,26 @@ export function initMatchForm({
     }
   }
 
-  attachAutocomplete(
-    gameNameInput,
-    (value) => `api/suggest/game/${encodeURIComponent(value)}`,
-    {
-      label: "game:add-match",
-      maxSuggestions: 3,
-      emptyLabel: "Dodaj gre",
-      onSelect: (selectedGameName) => {
-        syncGamePlayerConstraints(selectedGameName);
-      },
-      onEmptySelect: async (gameName) => {
-        const gameNameValue = gameName.trim();
-        if (!gameNameValue) return;
-        openGameModal(gameNameValue);
-      }
-    }
-  );
+  attachAutocomplete(gameNameInput, (value) => `api/suggest/game/${encodeURIComponent(value)}`, {
+    label: "game:add-match",
+    maxSuggestions: 3,
+    emptyLabel: () => t("add"),
+    onSelect: (selectedGameName) => syncGamePlayerConstraints(selectedGameName),
+    onEmptySelect: async (gameName) => {
+      const gameNameValue = gameName.trim();
+      if (!gameNameValue) return;
+      openGameModal(gameNameValue);
+    },
+  });
 
   clearMaxPlayersRange();
 
-  gameNameInput.addEventListener("blur", () => {
-    syncGamePlayerConstraints(gameNameInput.value);
-  });
-
+  gameNameInput.addEventListener("blur", () => syncGamePlayerConstraints(gameNameInput.value));
   gameNameInput.addEventListener("input", () => {
     clearFieldError(gameNameInput);
     hasResolvedGameConstraints = false;
     toggleMatchPlayersFields(false);
   });
-
   maxPlayersInput.addEventListener("input", () => {
     clearFieldError(maxPlayersInput);
     renderPlayers();
@@ -277,6 +285,7 @@ export function initMatchForm({
 
     gameNameInput.value = gameName;
     savedPlayers = [];
+
     if (
       Number.isInteger(minPlayers) &&
       Number.isInteger(maxPlayers) &&
@@ -290,89 +299,75 @@ export function initMatchForm({
     syncGamePlayerConstraints(gameName);
   });
 
-  matchForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const gameName = gameNameInput.value.trim();
+  matchForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
 
+    const gameName = gameNameInput.value.trim();
     if (!hasResolvedGameConstraints) {
       await syncGamePlayerConstraints(gameName);
     }
 
     if (!hasResolvedGameConstraints) {
       setFieldError(gameNameInput);
-      showToast("Wybierz istniejaca gre z bazy albo dodaj ja najpierw.", "error");
+      toast(t("selectExistingGame"), "error");
       return;
     }
 
     const players = Array.from(playersContainer.querySelectorAll(".player-card")).map((card) => ({
       nameInput: card.querySelector(".player-name"),
       pointsInput: card.querySelector(".player-points"),
-      winnerInput: card.querySelector(".winner-radio"),
       name: card.querySelector(".player-name").value.trim(),
       points: currentWinType === "inna" ? 0 : toInt(card.querySelector(".player-points").value),
-      winner: Boolean(card.querySelector(".winner-radio")?.checked)
+      winner: Boolean(card.querySelector(".winner-radio")?.checked),
     }));
+
     saveVisiblePlayers();
 
     const matchPayload = {
       gameName,
-      players: players.map(({ name, points }) => ({ name, points }))
+      players: players.map(({ name, points }) => ({ name, points })),
     };
+
     if (currentWinType === "inna") {
-      matchPayload.winnerName =
-        players.find((player) => player.winner)?.name || "";
+      matchPayload.winnerName = players.find((player) => player.winner)?.name || "";
     }
 
     if (currentWinType === "inna" && !matchPayload.winnerName) {
-      showToast("Wybierz zwyciezce rozgrywki.", "error");
+      toast(t("chooseWinnerError"), "error");
       return;
     }
 
     if (gameName.length < 2 || gameName.length > 100) {
       setFieldError(gameNameInput);
-      showToast("Nazwa gry musi miec od 2 do 100 znakow.", "error");
+      toast(t("enterGameName"), "error");
       return;
     }
 
     const duplicateNames = findDuplicatePlayerNames(players);
-
     let hasError = false;
 
     for (let index = 0; index < players.length; index++) {
       const player = players[index];
-
       clearFieldError(player.nameInput);
       clearFieldError(player.pointsInput);
 
       if (player.name.length < 2 || player.name.length > 100) {
         setFieldError(player.nameInput);
-        showToast(
-          `Gracz ${index + 1}: nazwa musi miec od 2 do 100 znakow.`,
-          "error",
-        );
+        toast(`${t("playerPrefix")} ${index + 1}: ${t("playerNameLength")}`, "error");
         hasError = true;
         continue;
       }
 
       if (duplicateNames.has(player.name.trim().toLocaleLowerCase("pl-PL"))) {
         setFieldError(player.nameInput);
-        showToast(
-          `Gracz ${index + 1}: ten sam gracz nie moze byc dodany dwa razy.`,
-          "error",
-        );
+        toast(`${t("playerPrefix")} ${index + 1}: ${t("duplicatePlayer")}`, "error");
         hasError = true;
         continue;
       }
 
-      if (
-        currentWinType !== "inna" &&
-        (!Number.isInteger(player.points) || player.points < 0)
-      ) {
+      if (currentWinType !== "inna" && (!Number.isInteger(player.points) || player.points < 0)) {
         setFieldError(player.pointsInput);
-        showToast(
-          `Gracz ${index + 1}: podaj liczbe punktow 0 lub wieksza.`,
-          "error",
-        );
+        toast(`${t("playerPrefix")} ${index + 1}: ${t("scoreMin")}`, "error");
         hasError = true;
       }
     }
@@ -381,17 +376,11 @@ export function initMatchForm({
 
     try {
       await postJson("api/match", matchPayload);
-
       gameNameInput.value = "";
       clearMaxPlayersRange();
-
-      showToast("Dodano rozgrywke do bazy.");
-    } catch (err) {
-      if (err instanceof Error && err.message) {
-        showToast(err.message, "error");
-        return;
-      }
-      showToast("Nie mozna teraz wyslac danych.", "error");
+      toast(t("matchAdded"));
+    } catch (error) {
+      toast(error instanceof Error && error.message ? error.message : t("loadError"), "error");
     }
   });
 }

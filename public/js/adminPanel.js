@@ -1,7 +1,15 @@
 import { qs, qsa } from "./dom.js";
 import { deleteRequest, getRequest, postJson, putJson } from "./api.js";
-import { normalizeGame, normalizeUser, escapeHtml, isDeletedGame, isDeletedUser, formatScores } from "./utils.js";
+import {
+  normalizeGame,
+  normalizeUser,
+  escapeHtml,
+  isDeletedGame,
+  isDeletedUser,
+  formatScores,
+} from "./utils.js";
 import { createPaginator, renderPaginationControls } from "./pagination.js";
+import { formatDate, formatGameType, formatWinType, t } from "./i18n.js";
 
 let players = [];
 let games = [];
@@ -17,50 +25,43 @@ const playersPaginator = createPaginator();
 const gamesPaginator = createPaginator();
 const matchesPaginator = createPaginator();
 
-function showToast(message, variant = "success") {
-  const existing = document.querySelector(".inline-toast");
-  if (existing) existing.remove();
-
-  const toast = document.createElement("div");
-  toast.className = `inline-toast is-${variant}`;
-  toast.textContent = message;
-  document.body.appendChild(toast);
-
-  requestAnimationFrame(() => toast.classList.add("is-visible"));
-  setTimeout(() => {
-    toast.classList.remove("is-visible");
-    setTimeout(() => toast.remove(), 250);
-  }, 2600);
-}
-
-function emptyRow(cols, text) {
-  return `<tr><td colspan="${cols}" class="admin-empty">${text}</td></tr>`;
-}
-
-function formatDate(value) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString("pl-PL");
-}
-
-function dateSortValue(value) {
+const emptyRow = (cols, text) => `<tr><td colspan="${cols}" class="admin-empty">${text}</td></tr>`;
+const dateSortValue = (value) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? "" : date.getTime();
-}
+};
 
-function renderHistoryLink(type, value, label) {
-  if (type === "player" && isDeletedUser(value)) return normalizeUser(value);
-  if (type === "game" && isDeletedGame(value)) return normalizeGame(value);
-  return `<button type="button" class="panel-link" data-nav-history="${type}" data-nav-value="${escapeHtml(String(value))}">${label}</button>`;
-}
+const renderHistoryLink = (type, value, label) =>
+  (type === "player" && isDeletedUser(value))
+    ? normalizeUser(value)
+    : (type === "game" && isDeletedGame(value))
+      ? normalizeGame(value)
+      : `<button type="button" class="panel-link" data-nav-history="${type}" data-nav-value="${escapeHtml(String(value))}">${label}</button>`;
 
-function showPanel(name) {
+const showPanel = (name) => {
   qsa("#adminView .admin-tab-btn").forEach((button) => {
     button.classList.toggle("active", button.dataset.adminPanel === name);
   });
   qsa("#adminView .admin-panel").forEach((panel) => {
     panel.classList.toggle("active", panel.dataset.adminPanel === name);
   });
-}
+};
+
+const toast = (message, variant = "success") => {
+  const existing = document.querySelector(".inline-toast");
+  if (existing) existing.remove();
+
+  const element = document.createElement("div");
+  element.className = `inline-toast is-${variant}`;
+  element.textContent = message;
+  document.body.appendChild(element);
+
+  requestAnimationFrame(() => element.classList.add("is-visible"));
+  setTimeout(() => {
+    element.classList.remove("is-visible");
+    setTimeout(() => element.remove(), 250);
+  }, 2600);
+};
 
 async function refreshAdminPanel() {
   players = (await getRequest("api/admin/players")).data || [];
@@ -84,19 +85,21 @@ async function refreshAdminPanel() {
 function renderPlayers() {
   const page = playersPaginator.getPage();
   qs("#adminPlayersBody").innerHTML = page.length
-    ? page.map((player) => `
-      <tr>
-        <td data-sort="${player.id}">${player.id}</td>
-        <td>${renderHistoryLink("player", player.nick, escapeHtml(player.nick))}</td>
-        <td class="actions-cell">
-          <div class="admin-actions">
-            <button type="button" class="btn-edit" data-action="edit-player" data-id="${player.id}">Modyfikuj</button>
-            <button type="button" class="btn-delete" data-action="delete-player" data-id="${player.id}">Usun</button>
-          </div>
-        </td>
-      </tr>
-    `).join("")
-    : emptyRow(3, "Brak graczy");
+    ? page
+        .map(
+          (player) => `<tr>
+            <td data-sort="${player.id}">${player.id}</td>
+            <td>${renderHistoryLink("player", player.nick, escapeHtml(player.nick))}</td>
+            <td class="actions-cell">
+              <div class="admin-actions">
+                <button type="button" class="btn-edit" data-action="edit-player" data-id="${player.id}">${t("edit")}</button>
+                <button type="button" class="btn-delete" data-action="delete-player" data-id="${player.id}">${t("delete")}</button>
+              </div>
+            </td>
+          </tr>`,
+        )
+        .join("")
+    : emptyRow(3, t("noData"));
 
   renderPaginationControls(playersPaginator, qs("#adminPlayersPagination"), renderPlayers);
 }
@@ -104,23 +107,25 @@ function renderPlayers() {
 function renderGames() {
   const page = gamesPaginator.getPage();
   qs("#adminGamesBody").innerHTML = page.length
-    ? page.map((game) => `
-      <tr>
-        <td data-sort="${game.id}">${game.id}</td>
-        <td>${renderHistoryLink("game", game.nazwa, escapeHtml(game.nazwa))}</td>
-        <td>${escapeHtml(game.rodzaj)}</td>
-        <td data-sort="${game.min_graczy}">${game.min_graczy}</td>
-        <td data-sort="${game.max_graczy}">${game.max_graczy}</td>
-        <td>${escapeHtml(game.rodzaj_wygranej)}</td>
-        <td class="actions-cell">
-          <div class="admin-actions">
-            <button type="button" class="btn-edit" data-action="edit-game" data-id="${game.id}">Modyfikuj</button>
-            <button type="button" class="btn-delete" data-action="delete-game" data-id="${game.id}">Usun</button>
-          </div>
-        </td>
-      </tr>
-    `).join("")
-    : emptyRow(7, "Brak gier");
+    ? page
+        .map(
+          (game) => `<tr>
+            <td data-sort="${game.id}">${game.id}</td>
+            <td>${renderHistoryLink("game", game.nazwa, escapeHtml(game.nazwa))}</td>
+            <td>${formatGameType(game.rodzaj)}</td>
+            <td data-sort="${game.min_graczy}">${game.min_graczy}</td>
+            <td data-sort="${game.max_graczy}">${game.max_graczy}</td>
+            <td>${formatWinType(game.rodzaj_wygranej)}</td>
+            <td class="actions-cell">
+              <div class="admin-actions">
+                <button type="button" class="btn-edit" data-action="edit-game" data-id="${game.id}">${t("edit")}</button>
+                <button type="button" class="btn-delete" data-action="delete-game" data-id="${game.id}">${t("delete")}</button>
+              </div>
+            </td>
+          </tr>`,
+        )
+        .join("")
+    : emptyRow(7, t("noData"));
 
   renderPaginationControls(gamesPaginator, qs("#adminGamesPagination"), renderGames);
 }
@@ -128,29 +133,29 @@ function renderGames() {
 function renderMatches() {
   const page = matchesPaginator.getPage();
   qs("#adminMatchesBody").innerHTML = page.length
-    ? page.map((match) => `
-      <tr>
-        <td data-sort="${match.id}">${match.id}</td>
-        <td data-sort="${dateSortValue(match.data)}">${formatDate(match.data)}</td>
-        <td>${renderHistoryLink("game", match.game_name, normalizeGame(match.game_name))}</td>
-        <td>${renderHistoryLink("player", match.winner_nick, normalizeUser(match.winner_nick))}</td>
-        <td data-sort="${match.ilosc_graczy}">${match.ilosc_graczy}</td>
-        <td>
-          <div class="score-list">
-            ${formatScores(scoresByMatch[match.id] || [])}
-            ${(scoresByMatch[match.id] || []).length
-              ? `<button type="button" class="btn-score-edit" data-action="edit-scores" data-id="${match.id}">Edytuj wyniki</button>`
-              : ""}
-          </div>
-        </td>
-        <td class="actions-cell">
-          <div class="admin-actions">
-            <button type="button" class="btn-delete" data-action="delete-match" data-id="${match.id}">Usun</button>
-          </div>
-        </td>
-      </tr>
-    `).join("")
-    : emptyRow(7, "Brak rozgrywek");
+    ? page
+        .map(
+          (match) => `<tr>
+            <td data-sort="${match.id}">${match.id}</td>
+            <td data-sort="${dateSortValue(match.data)}">${formatDate(match.data)}</td>
+            <td>${renderHistoryLink("game", match.game_name, normalizeGame(match.game_name))}</td>
+            <td>${renderHistoryLink("player", match.winner_nick, normalizeUser(match.winner_nick))}</td>
+            <td data-sort="${match.ilosc_graczy}">${match.ilosc_graczy}</td>
+            <td>
+              <div class="score-list">
+                ${formatScores(scoresByMatch[match.id] || [])}
+                ${(scoresByMatch[match.id] || []).length ? `<button type="button" class="btn-score-edit" data-action="edit-scores" data-id="${match.id}">${t("editResults")}</button>` : ""}
+              </div>
+            </td>
+            <td class="actions-cell">
+              <div class="admin-actions">
+                <button type="button" class="btn-delete" data-action="delete-match" data-id="${match.id}">${t("delete")}</button>
+              </div>
+            </td>
+          </tr>`,
+        )
+        .join("")
+    : emptyRow(7, t("noData"));
 
   renderPaginationControls(matchesPaginator, qs("#adminMatchesPagination"), renderMatches);
 }
@@ -163,25 +168,23 @@ function openEntityModal(title, html, type, id = 0) {
   qs("#adminEntityModal").style.display = "flex";
 }
 
-function closeEntityModal() {
+const closeEntityModal = () => {
   modalType = "";
   modalId = 0;
   qs("#adminEntityForm").reset();
   qs("#adminEntityFields").innerHTML = "";
   qs("#adminEntityModal").style.display = "none";
-}
+};
 
 function openPlayerModal(player) {
   openEntityModal(
-    player ? "Modyfikuj gracza" : "Dodaj gracza",
-    `
-      <div class="admin-form-field">
-        <label class="field-label" for="adminPlayerName">Nick gracza</label>
-        <input type="text" id="adminPlayerName" name="name" placeholder="Nick gracza..." value="${player ? escapeHtml(player.nick) : ""}" required />
-      </div>
-    `,
+    player ? t("editPlayerTitle") : t("addPlayerTitle"),
+    `<div class="admin-form-field">
+      <label class="field-label" for="adminPlayerName">${t("playerNameLabel")}</label>
+      <input type="text" id="adminPlayerName" name="name" placeholder="${t("playerNamePlaceholder")}" value="${player ? escapeHtml(player.nick) : ""}" required />
+    </div>`,
     "player",
-    player ? player.id : 0
+    player ? player.id : 0,
   );
 }
 
@@ -202,7 +205,6 @@ async function saveEntityModal(event) {
       const playerCount = Number(data.get("playerCount"));
       const game = await getRequest(`api/game/${encodeURIComponent(gameName)}`);
       const winner = await getRequest(`api/player/${encodeURIComponent(winnerName)}`);
-
       await putJson(`api/match/${modalId}`, {
         gameId: Number(game.gameData.id),
         winnerId: Number(winner.playerData.id),
@@ -212,9 +214,9 @@ async function saveEntityModal(event) {
 
     closeEntityModal();
     await refreshAdminPanel();
-    showToast("Zapisano zmiany.");
+    toast(t("saved"));
   } catch (error) {
-    showToast(error instanceof Error ? error.message : "Nie udalo sie zapisac danych.", "error");
+    toast(error instanceof Error ? error.message : t("loadError"), "error");
   }
 }
 
@@ -225,38 +227,40 @@ function openScoresModal(matchId) {
 
   activeMatchId = matchId;
   qs("#adminScoresModalTitle").textContent = isOtherWinType
-    ? `Zwyciezca rozgrywki #${match.id}`
-    : `Wyniki rozgrywki #${match.id}`;
+    ? `${t("winnerOfMatch")} #${match.id}`
+    : `${t("matchResults")} #${match.id}`;
   qs("#adminScoresMeta").innerHTML = `
-    <div><strong>Gra:</strong> ${escapeHtml(match.game_name)}</div>
-    <div><strong>Zwyciezca:</strong> ${escapeHtml(match.winner_nick)}</div>
-    <div><strong>Data:</strong> ${formatDate(match.data)}</div>
+    <div><strong>${t("colGame")}:</strong> ${escapeHtml(match.game_name)}</div>
+    <div><strong>${t("colWinner")}:</strong> ${escapeHtml(match.winner_nick)}</div>
+    <div><strong>${t("colDate")}:</strong> ${formatDate(match.data)}</div>
   `;
-  qs("#adminScoresFields").innerHTML = scores.map((score) => `
-    <div class="admin-score-row">
-      <div class="admin-score-name">${escapeHtml(score.player_nick)}</div>
-      ${isOtherWinType ? `
-        <label class="winner-radio-label">
-          <input type="radio" name="winnerId" value="${score.id_gracza}" ${Number(score.id_gracza) === Number(match.id_zwyciezcy) ? "checked" : ""} required />
-          Zwyciezca
-        </label>
-      ` : `
-        <input type="number" min="0" name="score-${score.id}" value="${score.liczba_punktow}" required />
-      `}
-    </div>
-  `).join("");
-  qs("#adminScoresSaveBtn").textContent = isOtherWinType ? "Zapisz zwyciezce" : "Zapisz wyniki";
+  qs("#adminScoresFields").innerHTML = scores
+    .map(
+      (score) => `<div class="admin-score-row">
+        <div class="admin-score-name">${escapeHtml(score.player_nick)}</div>
+        ${
+          isOtherWinType
+            ? `<label class="winner-radio-label">
+                <input type="radio" name="winnerId" value="${score.id_gracza}" ${Number(score.id_gracza) === Number(match.id_zwyciezcy) ? "checked" : ""} required />
+                ${t("chooseWinner")}
+              </label>`
+            : `<input type="number" min="0" name="score-${score.id}" value="${score.liczba_punktow}" required />`
+        }
+      </div>`,
+    )
+    .join("");
+
+  qs("#adminScoresSaveBtn").textContent = t("saveResults");
   qs("#adminScoresModal").style.display = "flex";
 }
 
-function closeScoresModal() {
+const closeScoresModal = () => {
   activeMatchId = 0;
   qs("#adminScoresForm").reset();
   qs("#adminScoresMeta").innerHTML = "";
   qs("#adminScoresFields").innerHTML = "";
-  qs("#adminScoresSaveBtn").textContent = "Zapisz wyniki";
   qs("#adminScoresModal").style.display = "none";
-}
+};
 
 async function saveScores(event) {
   event.preventDefault();
@@ -277,9 +281,12 @@ async function saveScores(event) {
           playerId: score.id_gracza,
           points,
         });
-        const isBetter = match.rodzaj_wygranej === "punktowa-malejaca"
-          ? points < winnerPoints
-          : points > winnerPoints;
+
+        const isBetter =
+          match.rodzaj_wygranej === "punktowa-malejaca"
+            ? points < winnerPoints
+            : points > winnerPoints;
+
         if (isBetter) {
           winnerPoints = points;
           winnerId = score.id_gracza;
@@ -292,30 +299,25 @@ async function saveScores(event) {
       winnerId,
       playerCount: match.ilosc_graczy,
     });
-
     closeScoresModal();
     await refreshAdminPanel();
-    showToast("Zapisano wyniki.");
+    toast(t("saved"));
   } catch (error) {
-    showToast(error instanceof Error ? error.message : "Nie udalo sie zapisac wynikow.", "error");
+    toast(error instanceof Error ? error.message : t("loadError"), "error");
   }
 }
 
 async function removeRecord(type, id) {
-  if (!window.confirm("Czy na pewno chcesz usunac ten rekord?")) return;
+  if (!window.confirm(t("confirmDelete"))) return;
   await deleteRequest(`api/${type}/${id}`);
   await refreshAdminPanel();
-  showToast("Usunieto rekord.");
+  toast(t("deleted"));
 }
 
-function openAddMatchView() {
-  qsa(".view").forEach((view) => {
-    view.classList.toggle("active", view.id === "addView");
-  });
-  qsa(".tab-btn").forEach((button) => {
-    button.classList.toggle("active", button.dataset.view === "addView");
-  });
-}
+const openAddMatchView = () => {
+  qsa(".view").forEach((view) => view.classList.toggle("active", view.id === "addView"));
+  qsa(".tab-btn").forEach((button) => button.classList.toggle("active", button.dataset.view === "addView"));
+};
 
 function bindButtons() {
   qsa("#adminView .admin-tab-btn").forEach((button) => {
@@ -333,6 +335,7 @@ function bindButtons() {
   qs("#adminEntityModal").addEventListener("click", (event) => {
     if (event.target === qs("#adminEntityModal")) closeEntityModal();
   });
+
   qs("#adminScoresModal").addEventListener("click", (event) => {
     if (event.target === qs("#adminScoresModal")) closeScoresModal();
   });
@@ -352,8 +355,12 @@ function bindButtons() {
     const id = Number(button.dataset.id);
     const action = button.dataset.action;
 
-    if (action === "edit-player") openPlayerModal(players.find((item) => item.id === id));
-    if (action === "delete-player") removeRecord("player", id);
+    if (action === "edit-player") {
+      openPlayerModal(players.find((item) => item.id === id));
+    }
+    if (action === "delete-player") {
+      removeRecord("player", id);
+    }
     if (action === "edit-game") {
       const game = games.find((item) => item.id === id);
       openGameModalRef({
@@ -367,9 +374,15 @@ function bindButtons() {
         onSaved: refreshAdminPanel,
       });
     }
-    if (action === "delete-game") removeRecord("game", id);
-    if (action === "delete-match") removeRecord("match", id);
-    if (action === "edit-scores") openScoresModal(id);
+    if (action === "delete-game") {
+      removeRecord("game", id);
+    }
+    if (action === "delete-match") {
+      removeRecord("match", id);
+    }
+    if (action === "edit-scores") {
+      openScoresModal(id);
+    }
   });
 }
 
@@ -381,3 +394,11 @@ export async function loadAdminPanel(options = {}) {
 }
 
 export { refreshAdminPanel };
+
+window.addEventListener("language-changed", () => {
+  if (players.length || games.length || matches.length) {
+    renderPlayers();
+    renderGames();
+    renderMatches();
+  }
+});

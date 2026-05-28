@@ -210,7 +210,7 @@ function postMatch()
 
     $winnerId = (int) $playerRowsByIndex[$winnerIndex]['id'];
 
-    $matchDate = date('Y-m-d H:i:s');
+    $matchDate = gmdate('Y-m-d\TH:i:s\Z');
     $playerCount = count($players);
     $matchId = dbHandle()->addMatch($winnerId, $gameId, $matchDate, $playerCount);
 

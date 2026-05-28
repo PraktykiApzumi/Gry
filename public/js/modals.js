@@ -1,4 +1,5 @@
 import { postJson, putJson } from "./api.js";
+import { t } from "./i18n.js";
 
 const gameModalState = {
   mode: "create",
@@ -41,6 +42,22 @@ function showToast(message, variant = "success") {
   }, 2600);
 }
 
+function syncGameModalText(modalEl) {
+  const titleEl = modalEl.querySelector("h3");
+  const emptyTypeOption = modalEl.querySelector('[name="type"] option[value=""]');
+  const emptyWinTypeOption = modalEl.querySelector('[name="winType"] option[value=""]');
+
+  if (titleEl) {
+    titleEl.textContent = gameModalState.mode === "edit" ? t("editGameTitle") : t("addNewGame");
+  }
+  if (emptyTypeOption) {
+    emptyTypeOption.textContent = t("selectGameType");
+  }
+  if (emptyWinTypeOption) {
+    emptyWinTypeOption.textContent = t("winType");
+  }
+}
+
 function clearModalFields(modalEl) {
   modalEl.querySelectorAll("input, select").forEach((el) => {
     el.value = "";
@@ -62,7 +79,6 @@ function fillGameModal(modalEl, game) {
 
 export function openGameModal(config = "") {
   const modalEl = document.getElementById("gameModal");
-  const titleEl = modalEl.querySelector("h3");
   const nameEl = modalEl.querySelector('[name="name"]');
   const game = typeof config === "string" ? { name: config } : config;
 
@@ -70,13 +86,8 @@ export function openGameModal(config = "") {
   gameModalState.gameId = game.id || null;
   gameModalState.onSaved = game.onSaved || null;
 
-  if (game.mode === "edit") {
-    if (titleEl) titleEl.textContent = "Modyfikuj grę";
-    fillGameModal(modalEl, game);
-  } else {
-    if (titleEl) titleEl.textContent = "Dodaj nową grę";
-    fillGameModal(modalEl, game);
-  }
+  fillGameModal(modalEl, game);
+  syncGameModalText(modalEl);
 
   modalEl.style.display = "flex";
   nameEl.focus();
@@ -95,6 +106,8 @@ export function initModals() {
   const modalEl = document.getElementById("gameModal");
   const closeBtn = document.getElementById("closeGameModal");
   const saveBtn = document.getElementById("saveGameBtn");
+
+  syncGameModalText(modalEl);
 
   modalEl.addEventListener("click", (e) => {
     if (e.target === modalEl) {
@@ -125,31 +138,31 @@ export function initModals() {
     let hasErrors = false;
 
     if (name.length < 2 || name.length > 100) {
-      setFieldError(nameEl, getErrorEl(modalEl, "name"), "Podaj nazwę gry od 2 do 100 znaków.");
+      setFieldError(nameEl, getErrorEl(modalEl, "name"), t("enterGameName"));
       hasErrors = true;
     }
 
     if (!type) {
-      setFieldError(typeEl, getErrorEl(modalEl, "type"), "Wybierz typ gry.");
+      setFieldError(typeEl, getErrorEl(modalEl, "type"), t("enterType"));
       hasErrors = true;
     }
 
     if (!Number.isInteger(minPlayers) || minPlayers < 1) {
-      setFieldError(minPlayersEl, getErrorEl(modalEl, "minPlayers"), "Podaj poprawną minimalną liczbę graczy.");
+      setFieldError(minPlayersEl, getErrorEl(modalEl, "minPlayers"), t("enterMinPlayers"));
       hasErrors = true;
     }
 
     if (!Number.isInteger(maxPlayers) || maxPlayers < 1) {
-      setFieldError(maxPlayersEl, getErrorEl(modalEl, "maxPlayers"), "Podaj poprawną maksymalną liczbę graczy.");
+      setFieldError(maxPlayersEl, getErrorEl(modalEl, "maxPlayers"), t("enterMaxPlayers"));
       hasErrors = true;
     } else if (Number.isInteger(minPlayers) && minPlayers > maxPlayers) {
-      setFieldError(minPlayersEl, getErrorEl(modalEl, "minPlayers"), "Minimum nie może być większe od maksimum.");
-      setFieldError(maxPlayersEl, getErrorEl(modalEl, "maxPlayers"), "Maksimum nie może być mniejsze od minimum.");
+      setFieldError(minPlayersEl, getErrorEl(modalEl, "minPlayers"), t("minPlayersGreater"));
+      setFieldError(maxPlayersEl, getErrorEl(modalEl, "maxPlayers"), t("maxPlayersLower"));
       hasErrors = true;
     }
 
     if (!winType) {
-      setFieldError(winTypeEl, getErrorEl(modalEl, "winType"), "Wybierz rodzaj wygranej.");
+      setFieldError(winTypeEl, getErrorEl(modalEl, "winType"), t("enterWinType"));
       hasErrors = true;
     }
 
@@ -191,10 +204,12 @@ export function initModals() {
         await gameModalState.onSaved(payload);
       }
 
-      showToast(gameModalState.mode === "edit" ? "Zapisano zmiany gry." : "Dodano nową grę.");
+      showToast(gameModalState.mode === "edit" ? t("gameUpdated") : t("gameAdded"));
       closeGameModal();
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Nie udało się zapisać gry.", "error");
+      showToast(error instanceof Error ? error.message : t("gameSaveError"), "error");
     }
   });
+
+  window.addEventListener("language-changed", () => syncGameModalText(modalEl));
 }

@@ -1,4 +1,5 @@
 import { getRequest } from "./api.js";
+import { t } from "./i18n.js";
 
 function normalizeSuggestions(raw) {
   if (!Array.isArray(raw)) return [];
@@ -28,7 +29,6 @@ export function attachAutocomplete(inputEl, endpointBuilder, options = {}) {
     onEmptySelect = null,
     onSelect = null
   } = options;
-
   let lastValue = null;
   let requestCounter = 0;
   let debounceTimerId = null;
@@ -82,10 +82,13 @@ export function attachAutocomplete(inputEl, endpointBuilder, options = {}) {
       !hasExactMatch &&
       emptyLabel 
     ) {
+      const addLabel = typeof emptyLabel === "function"
+        ? emptyLabel()
+        : (typeof emptyLabel === "string" ? emptyLabel : t("add"));
       const addRow = document.createElement("button");
       addRow.type = "button";
       addRow.className = "autocomplete-item autocomplete-item-add";
-      addRow.textContent = `${emptyLabel} "${query}"`;
+      addRow.textContent = `${addLabel} "${query}"`;
       addRow.addEventListener("mousedown", (e) => e.preventDefault());
       addRow.addEventListener("click", async () => {
         await onEmptySelect(query);

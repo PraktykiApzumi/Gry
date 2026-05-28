@@ -12,11 +12,13 @@ import {
   isDeletedUser,
 } from "./utils.js";
 import { createPaginator, renderPaginationControls } from "./pagination.js";
+import { t } from "./i18n.js";
 
 function renderPanelLink(label, entityType, value) {
-  if (!value) return "—";
+  if (!value) return "-";
   if (entityType === "game" && isDeletedGame(value)) return normalizeGame(value);
   if (entityType === "player" && isDeletedUser(value)) return normalizeUser(value);
+
   const safeLabel = escapeHtml(String(label));
   const safeValue = escapeHtml(String(value));
   return `<button type="button" class="panel-link" data-entity-type="${entityType}" data-entity-value="${safeValue}">${safeLabel}</button>`;
@@ -29,7 +31,7 @@ function renderHistoryRow(type, row, scoresByMatch = {}) {
   const gameName = row.game_name || row.nazwa || "";
   const winnerName = row.winner || row.winner_nick || "";
   const playerCount = Number(row.player_count ?? row.ilosc_graczy ?? 0);
-  const points = row.points_scored ?? "—";
+  const points = row.points_scored ?? "-";
 
   const base = {
     date: escapeHtml(formatDate(rawDate)),
@@ -48,7 +50,7 @@ function renderHistoryRow(type, row, scoresByMatch = {}) {
           <td data-sort="${base.dateSort}">${base.date}</td>
           <td>${base.game}</td>
           <td>${base.winner}</td>
-          <td data-sort="${base.playerCount}">${base.playerCount || "—"}</td>
+          <td data-sort="${base.playerCount}">${base.playerCount || "-"}</td>
           <td>${base.scores}</td>
         </tr>
       `;
@@ -57,7 +59,7 @@ function renderHistoryRow(type, row, scoresByMatch = {}) {
         <tr>
           <td data-sort="${base.dateSort}">${base.date}</td>
           <td>${base.winner}</td>
-          <td data-sort="${base.playerCount}">${base.playerCount || "—"}</td>
+          <td data-sort="${base.playerCount}">${base.playerCount || "-"}</td>
           <td>${base.scores}</td>
         </tr>
       `;
@@ -68,7 +70,7 @@ function renderHistoryRow(type, row, scoresByMatch = {}) {
           <td>${base.game}</td>
           <td>${base.winner}</td>
           <td data-sort="${Number.isFinite(Number(base.points)) ? Number(base.points) : ""}">${escapeHtml(String(base.points))}</td>
-          <td data-sort="${base.playerCount}">${base.playerCount || "—"}</td>
+          <td data-sort="${base.playerCount}">${base.playerCount || "-"}</td>
           <td>${base.scores}</td>
         </tr>
       `;
@@ -134,14 +136,14 @@ export function initHistory({ showView } = {}) {
   }
 
   async function loadRecentHistory() {
-    recentBody.innerHTML = emptyRow(5, "Ladowanie...");
+    recentBody.innerHTML = emptyRow(5, t("loading"));
 
     try {
       const data = await getRequest("api/history/recent");
       const rows = await attachScoresToRows(data?.history ?? []);
 
       if (!rows.length) {
-        recentBody.innerHTML = emptyRow(5, "Brak rozgrywek");
+        recentBody.innerHTML = emptyRow(5, t("noGames"));
         recentPaginator.setItems([]);
         renderPaginationControls(recentPaginator, qs("#recentHistoryPagination"), renderRecentPage);
         return false;
@@ -151,7 +153,7 @@ export function initHistory({ showView } = {}) {
       renderRecentPage();
       return true;
     } catch (error) {
-      recentBody.innerHTML = emptyRow(5, "Blad pobierania danych");
+      recentBody.innerHTML = emptyRow(5, t("loadError"));
       console.error("[history/recent]", error);
       return false;
     }
@@ -162,14 +164,14 @@ export function initHistory({ showView } = {}) {
     if (!normalizedName) return false;
 
     historyGameNameInput.value = normalizedName;
-    gameBody.innerHTML = emptyRow(4, "Ladowanie...");
+    gameBody.innerHTML = emptyRow(4, t("loading"));
 
     try {
       const data = await getRequest(`api/history/game/${encodeURIComponent(normalizedName)}`);
       const rows = await attachScoresToRows(data?.history ?? []);
 
       if (!rows.length) {
-        gameBody.innerHTML = emptyRow(4, "Brak rozgrywek dla tej gry");
+        gameBody.innerHTML = emptyRow(4, t("noGamesForItem"));
         gamePaginator.setItems([]);
         renderPaginationControls(gamePaginator, qs("#gameHistoryPagination"), renderGamePage);
         return false;
@@ -179,7 +181,7 @@ export function initHistory({ showView } = {}) {
       renderGamePage();
       return true;
     } catch (error) {
-      gameBody.innerHTML = emptyRow(4, "Blad pobierania danych");
+      gameBody.innerHTML = emptyRow(4, t("loadError"));
       console.error("[history/game]", error);
       return false;
     }
@@ -190,14 +192,14 @@ export function initHistory({ showView } = {}) {
     if (!normalizedName) return false;
 
     historyPlayerNameInput.value = normalizedName;
-    playerBody.innerHTML = emptyRow(6, "Ladowanie...");
+    playerBody.innerHTML = emptyRow(6, t("loading"));
 
     try {
       const data = await getRequest(`api/history/player/${encodeURIComponent(normalizedName)}`);
       const rows = await attachScoresToRows(data?.history ?? []);
 
       if (!rows.length) {
-        playerBody.innerHTML = emptyRow(6, "Brak rozgrywek dla tego gracza");
+        playerBody.innerHTML = emptyRow(6, t("noPlayersForItem"));
         playerPaginator.setItems([]);
         renderPaginationControls(playerPaginator, qs("#playerHistoryPagination"), renderPlayerPage);
         return false;
@@ -207,7 +209,7 @@ export function initHistory({ showView } = {}) {
       renderPlayerPage();
       return true;
     } catch (error) {
-      playerBody.innerHTML = emptyRow(6, "Blad pobierania danych");
+      playerBody.innerHTML = emptyRow(6, t("loadError"));
       console.error("[history/player]", error);
       return false;
     }
